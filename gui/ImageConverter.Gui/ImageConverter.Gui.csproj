@@ -1,0 +1,45 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Controls.DataGrid" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.12" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.12" />
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Include="Avalonia.Diagnostics" Version="11.3.12">
+      <IncludeAssets Condition="'$(Configuration)' != 'Debug'">None</IncludeAssets>
+      <PrivateAssets Condition="'$(Configuration)' != 'Debug'">All</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <Target Name="BuildRustCore" BeforeTargets="Build" Condition="'$(DesignTimeBuild)' != 'true'">
+    <Exec Command="cargo build --release --manifest-path ../../rust-core/Cargo.toml" />
+  </Target>
+
+  <Target Name="CopyRustCoreLibrary" AfterTargets="Build">
+    <PropertyGroup>
+      <RustCoreOutputDir>../../rust-core/target/release</RustCoreOutputDir>
+    </PropertyGroup>
+
+    <Copy
+      SourceFiles="$(RustCoreOutputDir)/libimage_core.so"
+      DestinationFolder="$(OutDir)"
+      Condition="$([MSBuild]::IsOSPlatform('Linux')) AND Exists('$(RustCoreOutputDir)/libimage_core.so')" />
+    <Copy
+      SourceFiles="$(RustCoreOutputDir)/image_core.dll"
+      DestinationFolder="$(OutDir)"
+      Condition="$([MSBuild]::IsOSPlatform('Windows')) AND Exists('$(RustCoreOutputDir)/image_core.dll')" />
+    <Copy
+      SourceFiles="$(RustCoreOutputDir)/libimage_core.dylib"
+      DestinationFolder="$(OutDir)"
+      Condition="$([MSBuild]::IsOSPlatform('OSX')) AND Exists('$(RustCoreOutputDir)/libimage_core.dylib')" />
+  </Target>
+</Project>
