@@ -127,12 +127,12 @@ public partial class MainWindow : Window
 
     private async void DropZone_OnDrop(object? sender, DragEventArgs e)
     {
-        if (_isConverting || !e.Data.Contains(DataFormats.Files))
+        if (_isConverting || !e.DataTransfer.Contains(DataFormat.File))
         {
             return;
         }
 
-        IEnumerable<IStorageItem>? storageItems = e.Data.GetFiles();
+        IEnumerable<IStorageItem>? storageItems = e.DataTransfer.TryGetFiles();
         if (storageItems is null)
         {
             return;
@@ -162,7 +162,7 @@ public partial class MainWindow : Window
 
     private void DropZone_OnDragOver(object? sender, DragEventArgs e)
     {
-        e.DragEffects = e.Data.Contains(DataFormats.Files) ? DragDropEffects.Copy : DragDropEffects.None;
+        e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;
     }
 

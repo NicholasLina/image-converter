@@ -55,6 +55,12 @@ cargo build --release --manifest-path rust-core/Cargo.toml
 
 and copies the native library next to the GUI executable.
 
+## Cloud agent environment setup
+
+If your cloud agents start without .NET/Rust preinstalled, use the env-agent prompt in:
+
+- `docs/env-agent-setup.md`
+
 ## Quality and Estimated Size Behavior
 
 - **Quality slider affects JPEG and AVIF** output.
