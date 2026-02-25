@@ -6,11 +6,14 @@
 
 This is a cross-platform desktop **Image Converter** app: a C# Avalonia GUI (`gui/ImageConverter.Gui/`) calling a Rust native core (`rust-core/`) via P/Invoke FFI. There are no services, databases, or Docker dependencies.
 
-### System prerequisites
+### System prerequisites (handled by the VM update script)
 
-- **.NET SDK 8.0+** — `sudo apt-get install -y dotnet-sdk-8.0`
-- **Rust stable** — `rustup update stable && rustup default stable`
-- **Avalonia Templates** (optional) — `dotnet new install Avalonia.Templates`
+The update script preinstalls these on every cloud agent startup — no manual bootstrap needed:
+
+- **.NET SDK 8.0+** (`dotnet-sdk-8.0`)
+- **Rust stable** (set as default via `rustup default stable`)
+- **Avalonia Templates** (`dotnet new install Avalonia.Templates`)
+- **NuGet restore** (`dotnet restore ImageConverter.sln`)
 
 ### Build / Run / Test
 
