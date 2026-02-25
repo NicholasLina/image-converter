@@ -37,7 +37,7 @@ Cross-platform desktop image conversion app with:
 ## Requirements
 
 - .NET SDK 8.0+
-- Rust toolchain (Cargo + rustc)
+- Rust toolchain (Cargo + rustc, **1.85+ recommended**)
 
 ## Build and Run
 

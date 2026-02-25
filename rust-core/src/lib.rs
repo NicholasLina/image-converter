@@ -1,5 +1,6 @@
 use std::ffi::{CStr, CString};
 use std::fs;
+use std::io::Cursor;
 use std::os::raw::c_char;
 use std::path::Path;
 
@@ -108,10 +109,12 @@ fn encode_image(
         OutputFormat::Tiff => {
             let rgba8 = image.to_rgba8();
             let (width, height) = rgba8.dimensions();
-            let encoder = TiffEncoder::new(&mut bytes);
+            let mut cursor = Cursor::new(Vec::new());
+            let encoder = TiffEncoder::new(&mut cursor);
             encoder
                 .encode(&rgba8, width, height, ExtendedColorType::Rgba8)
                 .map_err(|e| format!("TIFF encode failed: {e}"))?;
+            bytes = cursor.into_inner();
         }
         OutputFormat::Bmp => {
             let rgba8 = image.to_rgba8();

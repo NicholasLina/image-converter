@@ -3,6 +3,7 @@
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
+        x:CompileBindings="False"
         d:DesignWidth="1100"
         d:DesignHeight="720"
         x:Class="ImageConverter.Gui.MainWindow"
@@ -19,9 +20,9 @@
                 BorderThickness="2"
                 CornerRadius="10"
                 Padding="16"
-                AllowDrop="True"
-                DragOver="DropZone_OnDragOver"
-                Drop="DropZone_OnDrop">
+                DragDrop.AllowDrop="True"
+                DragDrop.DragOver="DropZone_OnDragOver"
+                DragDrop.Drop="DropZone_OnDrop">
             <StackPanel Spacing="4" HorizontalAlignment="Center">
                 <TextBlock Text="Drop images or folders here for bulk processing"
                            FontSize="16"
