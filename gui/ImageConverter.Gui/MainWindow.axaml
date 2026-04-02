@@ -1,0 +1,118 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d"
+        x:CompileBindings="False"
+        d:DesignWidth="1100"
+        d:DesignHeight="720"
+        x:Class="ImageConverter.Gui.MainWindow"
+        Width="1100"
+        Height="720"
+        MinWidth="900"
+        MinHeight="600"
+        Title="Image Converter (C# GUI + Rust Core)">
+    <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+        <Border Grid.Row="0"
+                Name="DropZone"
+                Background="#10235A89"
+                BorderBrush="#905AA9E6"
+                BorderThickness="2"
+                CornerRadius="10"
+                Padding="16"
+                DragDrop.AllowDrop="True"
+                DragDrop.DragOver="DropZone_OnDragOver"
+                DragDrop.Drop="DropZone_OnDrop">
+            <StackPanel Spacing="4" HorizontalAlignment="Center">
+                <TextBlock Text="Drop images or folders here for bulk processing"
+                           FontSize="16"
+                           FontWeight="SemiBold"
+                           HorizontalAlignment="Center" />
+                <TextBlock Text="Supported inputs include PNG, JPEG, WebP, AVIF, TIFF, BMP, GIF, ICO, HDR, PNM, DDS, TGA, QOI, and EXR."
+                           MaxWidth="920"
+                           TextWrapping="Wrap"
+                           TextAlignment="Center"
+                           HorizontalAlignment="Center" />
+            </StackPanel>
+        </Border>
+
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,220,Auto,240,Auto,130,Auto,120,*" ColumnSpacing="8">
+            <TextBlock Grid.Column="0" Text="Output format:" VerticalAlignment="Center" />
+            <ComboBox Grid.Column="1" Name="FormatComboBox" SelectionChanged="FormatComboBox_OnSelectionChanged">
+                <ComboBoxItem Content="JPEG (.jpg)" Tag="Jpeg" />
+                <ComboBoxItem Content="PNG (.png)" Tag="Png" />
+                <ComboBoxItem Content="WebP (.webp)" Tag="WebP" />
+                <ComboBoxItem Content="AVIF (.avif)" Tag="Avif" />
+                <ComboBoxItem Content="TIFF (.tiff)" Tag="Tiff" />
+                <ComboBoxItem Content="BMP (.bmp)" Tag="Bmp" />
+                <ComboBoxItem Content="GIF (.gif)" Tag="Gif" />
+            </ComboBox>
+
+            <TextBlock Grid.Column="2" Text="Quality:" VerticalAlignment="Center" />
+            <Slider Grid.Column="3"
+                    Name="QualitySlider"
+                    Minimum="1"
+                    Maximum="100"
+                    TickFrequency="1"
+                    ValueChanged="QualitySlider_OnValueChanged"
+                    IsSnapToTickEnabled="True" />
+            <TextBlock Grid.Column="4" Name="QualityLabel" Text="85" VerticalAlignment="Center" />
+
+            <TextBlock Grid.Column="5"
+                       Name="QualityHelpText"
+                       Text="(used for JPEG/AVIF)"
+                       VerticalAlignment="Center"
+                       Foreground="#AAFFFFFF" />
+
+            <TextBlock Grid.Column="6" Text="Output folder:" VerticalAlignment="Center" />
+            <TextBox Grid.Column="7" Name="OutputFolderTextBox" Watermark="Choose destination folder" />
+            <Button Grid.Column="8" Name="BrowseOutputButton" Content="Browse..." Click="BrowseOutputButton_OnClick" />
+        </Grid>
+
+        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+            <Button Name="AddFilesButton" Content="Add Files" Click="AddFilesButton_OnClick" />
+            <Button Name="AddFolderButton" Content="Add Folder" Click="AddFolderButton_OnClick" />
+            <Button Name="RemoveSelectedButton" Content="Remove Selected" Click="RemoveSelectedButton_OnClick" />
+            <Button Name="ClearButton" Content="Clear Queue" Click="ClearButton_OnClick" />
+            <Button Name="EstimateButton" Content="Refresh Estimates" Click="EstimateButton_OnClick" />
+            <Button Name="ConvertButton"
+                    Content="Convert All"
+                    Click="ConvertButton_OnClick"
+                    HorizontalAlignment="Right"
+                    Classes="accent" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="3"
+                  Name="JobsGrid"
+                  Margin="0,4,0,4"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Extended"
+                  GridLinesVisibility="Horizontal"
+                  CanUserSortColumns="False"
+                  CanUserReorderColumns="False">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="2*" />
+                <DataGridTextColumn Header="Input Path" Binding="{Binding InputPath}" Width="4*" />
+                <DataGridTextColumn Header="Source Size" Binding="{Binding SourceSize}" Width="130" />
+                <DataGridTextColumn Header="Estimated Size" Binding="{Binding EstimatedSize}" Width="140" />
+                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="2*" />
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <Grid Grid.Row="4" ColumnDefinitions="*,240" ColumnSpacing="16">
+            <StackPanel Grid.Column="0" Spacing="3">
+                <TextBlock Name="SummaryText" Text="Queue is empty." />
+                <TextBlock Name="EstimateSummaryText" Text="Estimated output: --" Foreground="#D0D0D0" />
+            </StackPanel>
+
+            <ProgressBar Grid.Column="1"
+                         Name="ConversionProgressBar"
+                         Height="18"
+                         Minimum="0"
+                         Maximum="100"
+                         Value="0"
+                         VerticalAlignment="Center" />
+        </Grid>
+    </Grid>
+</Window>
