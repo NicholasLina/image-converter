@@ -219,6 +219,7 @@ public partial class MainWindow : Window
 
     private void QualitySlider_OnValueChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
     {
+        if (QualityLabel is null) return;
         QualityLabel.Text = $"{(int)Math.Round(e.NewValue)}";
         _ = RecalculateEstimatesAsync();
     }
