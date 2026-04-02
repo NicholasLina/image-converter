@@ -12,8 +12,13 @@
         MinWidth="900"
         MinHeight="600"
         Title="Image Converter (C# GUI + Rust Core)">
-    <Grid Margin="16" RowDefinitions="Auto,Auto,Auto,*,Auto" RowSpacing="12">
+    <Grid Margin="16"
+          ColumnDefinitions="*,320"
+          RowDefinitions="Auto,Auto,*,Auto"
+          ColumnSpacing="16"
+          RowSpacing="12">
         <Border Grid.Row="0"
+                Grid.ColumnSpan="2"
                 Name="DropZone"
                 Background="#10235A89"
                 BorderBrush="#905AA9E6"
@@ -36,53 +41,16 @@
             </StackPanel>
         </Border>
 
-        <Grid Grid.Row="1" ColumnDefinitions="Auto,220,Auto,240,Auto,130,Auto,120,*" ColumnSpacing="8">
-            <TextBlock Grid.Column="0" Text="Output format:" VerticalAlignment="Center" />
-            <ComboBox Grid.Column="1" Name="FormatComboBox" SelectionChanged="FormatComboBox_OnSelectionChanged">
-                <ComboBoxItem Content="JPEG (.jpg)" Tag="Jpeg" />
-                <ComboBoxItem Content="PNG (.png)" Tag="Png" />
-                <ComboBoxItem Content="WebP (.webp)" Tag="WebP" />
-                <ComboBoxItem Content="AVIF (.avif)" Tag="Avif" />
-                <ComboBoxItem Content="TIFF (.tiff)" Tag="Tiff" />
-                <ComboBoxItem Content="BMP (.bmp)" Tag="Bmp" />
-                <ComboBoxItem Content="GIF (.gif)" Tag="Gif" />
-            </ComboBox>
-
-            <TextBlock Grid.Column="2" Text="Quality:" VerticalAlignment="Center" />
-            <Slider Grid.Column="3"
-                    Name="QualitySlider"
-                    Minimum="1"
-                    Maximum="100"
-                    TickFrequency="1"
-                    ValueChanged="QualitySlider_OnValueChanged"
-                    IsSnapToTickEnabled="True" />
-            <TextBlock Grid.Column="4" Name="QualityLabel" Text="85" VerticalAlignment="Center" />
-
-            <TextBlock Grid.Column="5"
-                       Name="QualityHelpText"
-                       Text="(used for JPEG/AVIF)"
-                       VerticalAlignment="Center"
-                       Foreground="#AAFFFFFF" />
-
-            <TextBlock Grid.Column="6" Text="Output folder:" VerticalAlignment="Center" />
-            <TextBox Grid.Column="7" Name="OutputFolderTextBox" Watermark="Choose destination folder" />
-            <Button Grid.Column="8" Name="BrowseOutputButton" Content="Browse..." Click="BrowseOutputButton_OnClick" />
-        </Grid>
-
-        <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="8">
+        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
             <Button Name="AddFilesButton" Content="Add Files" Click="AddFilesButton_OnClick" />
             <Button Name="AddFolderButton" Content="Add Folder" Click="AddFolderButton_OnClick" />
             <Button Name="RemoveSelectedButton" Content="Remove Selected" Click="RemoveSelectedButton_OnClick" />
             <Button Name="ClearButton" Content="Clear Queue" Click="ClearButton_OnClick" />
             <Button Name="EstimateButton" Content="Refresh Estimates" Click="EstimateButton_OnClick" />
-            <Button Name="ConvertButton"
-                    Content="Convert All"
-                    Click="ConvertButton_OnClick"
-                    HorizontalAlignment="Right"
-                    Classes="accent" />
         </StackPanel>
 
-        <DataGrid Grid.Row="3"
+        <DataGrid Grid.Row="2"
+                  Grid.Column="0"
                   Name="JobsGrid"
                   Margin="0,4,0,4"
                   AutoGenerateColumns="False"
@@ -100,7 +68,7 @@
             </DataGrid.Columns>
         </DataGrid>
 
-        <Grid Grid.Row="4" ColumnDefinitions="*,240" ColumnSpacing="16">
+        <Grid Grid.Row="3" Grid.Column="0" ColumnDefinitions="*,240" ColumnSpacing="16">
             <StackPanel Grid.Column="0" Spacing="3">
                 <TextBlock Name="SummaryText" Text="Queue is empty." />
                 <TextBlock Name="EstimateSummaryText" Text="Estimated output: --" Foreground="#D0D0D0" />
@@ -114,5 +82,67 @@
                          Value="0"
                          VerticalAlignment="Center" />
         </Grid>
+
+        <Border Grid.Row="1"
+                Grid.RowSpan="3"
+                Grid.Column="1"
+                Background="#0DFFFFFF"
+                BorderBrush="#35FFFFFF"
+                BorderThickness="1"
+                CornerRadius="10"
+                Padding="14">
+            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
+                <TextBlock Grid.Row="0" Text="Output format" FontWeight="SemiBold" />
+                <ComboBox Grid.Row="1"
+                          Name="FormatComboBox"
+                          Margin="0,6,0,12"
+                          SelectionChanged="FormatComboBox_OnSelectionChanged">
+                    <ComboBoxItem Content="JPEG (.jpg)" Tag="Jpeg" />
+                    <ComboBoxItem Content="PNG (.png)" Tag="Png" />
+                    <ComboBoxItem Content="WebP (.webp)" Tag="WebP" />
+                    <ComboBoxItem Content="AVIF (.avif)" Tag="Avif" />
+                    <ComboBoxItem Content="TIFF (.tiff)" Tag="Tiff" />
+                    <ComboBoxItem Content="BMP (.bmp)" Tag="Bmp" />
+                    <ComboBoxItem Content="GIF (.gif)" Tag="Gif" />
+                </ComboBox>
+
+                <TextBlock Grid.Row="2" Text="Quality" FontWeight="SemiBold" />
+                <Grid Grid.Row="3" Margin="0,6,0,12" ColumnDefinitions="*,Auto" ColumnSpacing="8">
+                    <Slider Grid.Column="0"
+                            Name="QualitySlider"
+                            Minimum="1"
+                            Maximum="100"
+                            TickFrequency="1"
+                            ValueChanged="QualitySlider_OnValueChanged"
+                            IsSnapToTickEnabled="True" />
+                    <TextBlock Grid.Column="1" Name="QualityLabel" Text="85" VerticalAlignment="Center" />
+                </Grid>
+                <TextBlock Grid.Row="4"
+                           Name="QualityHelpText"
+                           Text="(used for JPEG/AVIF)"
+                           Margin="0,0,0,12"
+                           Foreground="#AAFFFFFF" />
+
+                <TextBlock Grid.Row="5" Text="Output folder" FontWeight="SemiBold" />
+                <StackPanel Grid.Row="6" Margin="0,6,0,0" Spacing="8">
+                    <TextBox Name="OutputFolderTextBox"
+                             IsReadOnly="True"
+                             Watermark="Choose destination folder"
+                             TextWrapping="WrapWithOverflow"
+                             AcceptsReturn="True"
+                             MinHeight="58" />
+                    <Button Name="BrowseOutputButton" Content="Browse..." Click="BrowseOutputButton_OnClick" />
+                </StackPanel>
+
+                <Button Grid.Row="7"
+                        Name="ConvertButton"
+                        Content="Convert All"
+                        Click="ConvertButton_OnClick"
+                        VerticalAlignment="Bottom"
+                        HorizontalAlignment="Stretch"
+                        Margin="0,16,0,0"
+                        Classes="accent" />
+            </Grid>
+        </Border>
     </Grid>
 </Window>
