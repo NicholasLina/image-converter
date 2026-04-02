@@ -261,7 +261,7 @@ mod tests {
     use image::{DynamicImage, ImageBuffer, ImageFormat, Rgba};
     use tempfile::tempdir;
 
-    use super::{convert_image, estimate_output_size, OutputFormat};
+    use super::{convert_image, estimate_output_size, normalized_quality, OutputFormat};
 
     fn create_source_image(path: &Path) {
         let source = ImageBuffer::from_fn(200, 140, |x, y| {
@@ -276,6 +276,16 @@ mod tests {
         DynamicImage::ImageRgba8(source)
             .save_with_format(path, ImageFormat::Png)
             .expect("failed to create source image");
+    }
+
+    fn create_small_image(path: &Path) {
+        let source = ImageBuffer::from_fn(10, 10, |x, y| {
+            Rgba([(x * 25) as u8, (y * 25) as u8, 128, 255])
+        });
+
+        DynamicImage::ImageRgba8(source)
+            .save_with_format(path, ImageFormat::Png)
+            .expect("failed to create small image");
     }
 
     #[test]
@@ -294,6 +304,81 @@ mod tests {
     }
 
     #[test]
+    fn converts_image_to_png() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.png");
+        create_source_image(&source);
+
+        convert_image(&source, &output, OutputFormat::Png, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist after conversion");
+        let reopened = image::open(&output).expect("output should be readable image");
+        assert_eq!(reopened.width(), 200);
+        assert_eq!(reopened.height(), 140);
+    }
+
+    #[test]
+    fn converts_image_to_webp() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.webp");
+        create_source_image(&source);
+
+        convert_image(&source, &output, OutputFormat::WebP, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist after conversion");
+    }
+
+    #[test]
+    fn converts_image_to_avif() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.avif");
+        create_small_image(&source);
+
+        convert_image(&source, &output, OutputFormat::Avif, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist after conversion");
+    }
+
+    #[test]
+    fn converts_image_to_tiff() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.tiff");
+        create_source_image(&source);
+
+        convert_image(&source, &output, OutputFormat::Tiff, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist after conversion");
+    }
+
+    #[test]
+    fn converts_image_to_bmp() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.bmp");
+        create_source_image(&source);
+
+        convert_image(&source, &output, OutputFormat::Bmp, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist after conversion");
+    }
+
+    #[test]
+    fn converts_image_to_gif() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.gif");
+        create_source_image(&source);
+
+        convert_image(&source, &output, OutputFormat::Gif, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist after conversion");
+    }
+
+    #[test]
     fn quality_changes_jpeg_estimate() {
         let temp = tempdir().expect("tempdir");
         let source = temp.path().join("source.png");
@@ -308,6 +393,20 @@ mod tests {
     }
 
     #[test]
+    fn quality_changes_avif_estimate() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        create_small_image(&source);
+
+        let low_quality =
+            estimate_output_size(&source, OutputFormat::Avif, 20).expect("estimate should succeed");
+        let high_quality =
+            estimate_output_size(&source, OutputFormat::Avif, 90).expect("estimate should succeed");
+
+        assert!(high_quality > low_quality, "higher quality should increase output size for AVIF");
+    }
+
+    #[test]
     fn estimates_size_for_lossless_format() {
         let temp = tempdir().expect("tempdir");
         let source = temp.path().join("source.png");
@@ -316,5 +415,126 @@ mod tests {
         let estimate =
             estimate_output_size(&source, OutputFormat::WebP, 50).expect("estimate should succeed");
         assert!(estimate > 0, "estimate should be positive");
+    }
+
+    #[test]
+    fn estimate_matches_actual_file_size() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("converted.jpg");
+        create_source_image(&source);
+
+        let estimate = estimate_output_size(&source, OutputFormat::Jpeg, 85)
+            .expect("estimate should succeed");
+        convert_image(&source, &output, OutputFormat::Jpeg, 85).expect("conversion should succeed");
+
+        let actual_size = std::fs::metadata(&output).expect("output file should exist").len();
+        assert_eq!(estimate, actual_size, "estimate should match actual file size");
+    }
+
+    #[test]
+    fn converts_with_subdirectory_creation() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        let output = temp.path().join("subdir").join("nested").join("converted.jpg");
+        create_source_image(&source);
+
+        convert_image(&source, &output, OutputFormat::Jpeg, 85).expect("conversion should succeed");
+
+        assert!(output.exists(), "output file should exist in nested directory");
+    }
+
+    #[test]
+    fn fails_on_nonexistent_input() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("nonexistent.png");
+        let output = temp.path().join("output.jpg");
+
+        let result = convert_image(&source, &output, OutputFormat::Jpeg, 85);
+        assert!(result.is_err(), "should fail for nonexistent input");
+    }
+
+    #[test]
+    fn estimate_fails_on_nonexistent_input() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("nonexistent.png");
+
+        let result = estimate_output_size(&source, OutputFormat::Jpeg, 85);
+        assert!(result.is_err(), "should fail for nonexistent input");
+    }
+
+    #[test]
+    fn normalized_quality_clamps_to_valid_range() {
+        assert_eq!(normalized_quality(0), 1, "quality 0 should clamp to 1");
+        assert_eq!(normalized_quality(1), 1, "quality 1 should remain 1");
+        assert_eq!(normalized_quality(50), 50, "quality 50 should remain 50");
+        assert_eq!(normalized_quality(100), 100, "quality 100 should remain 100");
+        assert_eq!(normalized_quality(150), 100, "quality 150 should clamp to 100");
+        assert_eq!(normalized_quality(255), 100, "quality 255 should clamp to 100");
+    }
+
+    #[test]
+    fn output_format_try_from_valid_values() {
+        assert_eq!(OutputFormat::try_from(0), Ok(OutputFormat::Jpeg));
+        assert_eq!(OutputFormat::try_from(1), Ok(OutputFormat::Png));
+        assert_eq!(OutputFormat::try_from(2), Ok(OutputFormat::WebP));
+        assert_eq!(OutputFormat::try_from(3), Ok(OutputFormat::Avif));
+        assert_eq!(OutputFormat::try_from(4), Ok(OutputFormat::Tiff));
+        assert_eq!(OutputFormat::try_from(5), Ok(OutputFormat::Bmp));
+        assert_eq!(OutputFormat::try_from(6), Ok(OutputFormat::Gif));
+    }
+
+    #[test]
+    fn output_format_try_from_invalid_value() {
+        assert!(OutputFormat::try_from(-1).is_err());
+        assert!(OutputFormat::try_from(7).is_err());
+        assert!(OutputFormat::try_from(100).is_err());
+    }
+
+    #[test]
+    fn output_format_extension_returns_correct_values() {
+        assert_eq!(OutputFormat::Jpeg.extension(), "jpg");
+        assert_eq!(OutputFormat::Png.extension(), "png");
+        assert_eq!(OutputFormat::WebP.extension(), "webp");
+        assert_eq!(OutputFormat::Avif.extension(), "avif");
+        assert_eq!(OutputFormat::Tiff.extension(), "tiff");
+        assert_eq!(OutputFormat::Bmp.extension(), "bmp");
+        assert_eq!(OutputFormat::Gif.extension(), "gif");
+    }
+
+    #[test]
+    fn output_format_supports_quality() {
+        assert!(OutputFormat::Jpeg.supports_quality());
+        assert!(OutputFormat::Avif.supports_quality());
+        assert!(!OutputFormat::Png.supports_quality());
+        assert!(!OutputFormat::WebP.supports_quality());
+        assert!(!OutputFormat::Tiff.supports_quality());
+        assert!(!OutputFormat::Bmp.supports_quality());
+        assert!(!OutputFormat::Gif.supports_quality());
+    }
+
+    #[test]
+    fn preserves_image_dimensions() {
+        let temp = tempdir().expect("tempdir");
+        let source = temp.path().join("source.png");
+        create_source_image(&source);
+
+        let formats = [
+            OutputFormat::Jpeg,
+            OutputFormat::Png,
+            OutputFormat::WebP,
+            OutputFormat::Tiff,
+            OutputFormat::Bmp,
+            OutputFormat::Gif,
+        ];
+
+        for format in formats {
+            let output = temp.path().join(format!("output.{}", format.extension()));
+            convert_image(&source, &output, format, 85).expect("conversion should succeed");
+
+            let reopened = image::open(&output).expect("output should be readable");
+            assert_eq!(reopened.width(), 200, "width should be preserved for {:?}", format);
+            assert_eq!(reopened.height(), 140, "height should be preserved for {:?}", format);
+        }
     }
 }
