@@ -13,37 +13,15 @@ using ImageConverter.Gui.Services;
 
 namespace ImageConverter.Gui;
 
+/// <summary>
+/// Main window for the Image Converter application.
+/// Provides UI for batch image conversion with drag-and-drop support.
+/// </summary>
 public partial class MainWindow : Window
 {
-    private static readonly string[] SupportedExtensions =
-    {
-        ".png",
-        ".jpg",
-        ".jpeg",
-        ".webp",
-        ".avif",
-        ".bmp",
-        ".gif",
-        ".tif",
-        ".tiff",
-        ".ico",
-        ".hdr",
-        ".pnm",
-        ".ppm",
-        ".pgm",
-        ".pbm",
-        ".dds",
-        ".tga",
-        ".qoi",
-        ".exr"
-    };
-
-    private static readonly HashSet<string> SupportedExtensionSet =
-        new(SupportedExtensions, StringComparer.OrdinalIgnoreCase);
-
     private static readonly FilePickerFileType ImageFilePickerType = new("Image Files")
     {
-        Patterns = SupportedExtensions.Select(ext => $"*{ext}").ToArray(),
+        Patterns = FileSystemService.GetSupportedExtensions().Select(ext => $"*{ext}").ToArray(),
         MimeTypes = new[] { "image/*" },
         AppleUniformTypeIdentifiers = new[] { "public.image" }
     };
@@ -121,7 +99,7 @@ public partial class MainWindow : Window
             return;
         }
 
-        List<string> filePaths = await Task.Run(() => EnumerateSupportedFiles(folderPath));
+        List<string> filePaths = await Task.Run(() => FileSystemService.EnumerateSupportedFiles(folderPath));
         await AddInputPathsAsync(filePaths);
     }
 
@@ -149,7 +127,7 @@ public partial class MainWindow : Window
 
             if (item is IStorageFolder)
             {
-                resolvedPaths.AddRange(await Task.Run(() => EnumerateSupportedFiles(localPath)));
+                resolvedPaths.AddRange(await Task.Run(() => FileSystemService.EnumerateSupportedFiles(localPath)));
             }
             else
             {
@@ -266,8 +244,6 @@ public partial class MainWindow : Window
             return;
         }
 
-        Directory.CreateDirectory(outputFolder);
-
         _isConverting = true;
         SetControlsEnabled(false);
         _estimateCts?.Cancel();
@@ -276,41 +252,13 @@ public partial class MainWindow : Window
 
         OutputFormat outputFormat = GetSelectedFormat();
         int quality = (int)Math.Round(QualitySlider.Value);
-        int successCount = 0;
-        int failureCount = 0;
 
-        foreach (ConversionJob job in _jobs)
-        {
-            job.Status = "Converting...";
-            string outputPath = BuildOutputPath(outputFolder, job, outputFormat);
-            (bool success, string error) = await Task.Run(() =>
-            {
-                bool converted = RustInterop.ConvertImage(
-                    job.InputPath,
-                    outputPath,
-                    outputFormat,
-                    quality,
-                    out string errorMessage);
-                return (converted, errorMessage);
-            });
-
-            if (success)
-            {
-                successCount++;
-                job.Status = "Done";
-                if (File.Exists(outputPath))
-                {
-                    job.EstimatedSizeBytes = new FileInfo(outputPath).Length;
-                }
-            }
-            else
-            {
-                failureCount++;
-                job.Status = $"Failed: {Truncate(error, 70)}";
-            }
-
-            ConversionProgressBar.Value = successCount + failureCount;
-        }
+        (int successCount, int failureCount) = await ConversionService.ConvertBatchAsync(
+            _jobs,
+            outputFolder,
+            outputFormat,
+            quality,
+            (job, success, failure) => ConversionProgressBar.Value = success + failure);
 
         _isConverting = false;
         SetControlsEnabled(true);
@@ -335,7 +283,7 @@ public partial class MainWindow : Window
             }
 
             string fullPath = Path.GetFullPath(rawPath);
-            if (!File.Exists(fullPath) || !IsSupportedInput(fullPath) || existing.Contains(fullPath))
+            if (!File.Exists(fullPath) || !FileSystemService.IsSupportedInput(fullPath) || existing.Contains(fullPath))
             {
                 continue;
             }
@@ -374,26 +322,9 @@ public partial class MainWindow : Window
         OutputFormat outputFormat = GetSelectedFormat();
         int quality = (int)Math.Round(QualitySlider.Value);
 
-        foreach (ConversionJob job in targets)
-        {
-            job.EstimatedSizeBytes = null;
-        }
-
         try
         {
-            foreach (ConversionJob job in targets)
-            {
-                token.ThrowIfCancellationRequested();
-                long? estimate = await Task.Run(
-                    () => RustInterop.EstimateOutputSize(job.InputPath, outputFormat, quality),
-                    token);
-                if (token.IsCancellationRequested)
-                {
-                    return;
-                }
-
-                job.EstimatedSizeBytes = estimate;
-            }
+            await ConversionService.EstimateBatchAsync(targets, outputFormat, quality, token);
         }
         catch (OperationCanceledException)
         {
@@ -471,53 +402,4 @@ public partial class MainWindow : Window
 
         return OutputFormat.Jpeg;
     }
-
-    private static string BuildOutputPath(string outputFolder, ConversionJob job, OutputFormat outputFormat)
-    {
-        string fileNameWithoutExtension = Path.GetFileNameWithoutExtension(job.FileName);
-        string extension = outputFormat.FileExtension();
-        string baseCandidate = $"{fileNameWithoutExtension}.{extension}";
-        string candidatePath = Path.Combine(outputFolder, baseCandidate);
-
-        if (!File.Exists(candidatePath))
-        {
-            return candidatePath;
-        }
-
-        int suffix = 1;
-        while (true)
-        {
-            string deduplicatedName = $"{fileNameWithoutExtension}_{suffix}.{extension}";
-            string deduplicatedPath = Path.Combine(outputFolder, deduplicatedName);
-            if (!File.Exists(deduplicatedPath))
-            {
-                return deduplicatedPath;
-            }
-
-            suffix++;
-        }
-    }
-
-    private static bool IsSupportedInput(string path) =>
-        SupportedExtensionSet.Contains(Path.GetExtension(path));
-
-    private static List<string> EnumerateSupportedFiles(string folderPath)
-    {
-        try
-        {
-            return Directory
-                .EnumerateFiles(folderPath, "*.*", SearchOption.AllDirectories)
-                .Where(IsSupportedInput)
-                .ToList();
-        }
-        catch
-        {
-            return new List<string>();
-        }
-    }
-
-    private static string Truncate(string text, int maxLength) =>
-        string.IsNullOrWhiteSpace(text) || text.Length <= maxLength
-            ? text
-            : $"{text[..(maxLength - 3)]}...";
 }
