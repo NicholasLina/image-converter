@@ -27,6 +27,9 @@ public partial class MainWindow : Window
     };
 
     private readonly ObservableCollection<ConversionJob> _jobs = new();
+    private readonly string _defaultOutputFolder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+        "converted-images");
     private CancellationTokenSource? _estimateCts;
     private bool _isConverting;
 
@@ -34,11 +37,7 @@ public partial class MainWindow : Window
     {
         InitializeComponent();
         JobsGrid.ItemsSource = _jobs;
-        FormatComboBox.SelectedIndex = 0;
-        QualitySlider.Value = 85;
-        OutputFolderTextBox.Text = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-            "converted-images");
+        LoadSettings();
         UpdateQualityUi();
         SummaryText.Text = "No images yet. Add files or drop a folder to begin.";
         EstimateSummaryText.Text = "Estimated output: --";
@@ -234,6 +233,7 @@ public partial class MainWindow : Window
     {
         UpdateQualityUi();
         _ = RecalculateEstimatesAsync();
+        SaveSettings();
     }
 
     private void QualitySlider_OnValueChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
@@ -241,6 +241,7 @@ public partial class MainWindow : Window
         if (QualityLabel is null) return;
         QualityLabel.Text = $"{(int)Math.Round(e.NewValue)}";
         _ = RecalculateEstimatesAsync();
+        SaveSettings();
     }
 
     private async void BrowseOutputButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -262,6 +263,7 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(folderPath))
         {
             OutputFolderTextBox.Text = folderPath;
+            SaveSettings();
         }
     }
 
@@ -463,5 +465,43 @@ public partial class MainWindow : Window
         }
 
         return OutputFormat.Jpeg;
+    }
+
+    private void LoadSettings()
+    {
+        AppSettings settings = AppSettingsService.Load();
+
+        int selectedIndex = settings.OutputFormat switch
+        {
+            OutputFormat.Jpeg => 0,
+            OutputFormat.Png => 1,
+            OutputFormat.WebP => 2,
+            OutputFormat.Avif => 3,
+            OutputFormat.Tiff => 4,
+            OutputFormat.Bmp => 5,
+            OutputFormat.Gif => 6,
+            _ => 0
+        };
+
+        FormatComboBox.SelectedIndex = selectedIndex;
+        QualitySlider.Value = settings.Quality;
+        OutputFolderTextBox.Text = settings.OutputFolder ?? _defaultOutputFolder;
+    }
+
+    private void SaveSettings()
+    {
+        if (!IsInitialized)
+        {
+            return;
+        }
+
+        AppSettings settings = new()
+        {
+            OutputFormat = GetSelectedFormat(),
+            Quality = (int)Math.Round(QualitySlider.Value),
+            OutputFolder = OutputFolderTextBox.Text?.Trim()
+        };
+
+        AppSettingsService.Save(settings);
     }
 }
