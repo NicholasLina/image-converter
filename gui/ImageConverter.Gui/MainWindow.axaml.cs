@@ -40,8 +40,9 @@ public partial class MainWindow : Window
             Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
             "converted-images");
         UpdateQualityUi();
-        SummaryText.Text = "Queue is empty.";
+        SummaryText.Text = "No images yet. Add files or drop a folder to begin.";
         EstimateSummaryText.Text = "Estimated output: --";
+        UpdateConvertButtonLabel();
     }
 
     private async void AddFilesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -168,6 +169,7 @@ public partial class MainWindow : Window
 
         SummaryText.Text = $"Removed {selectedJobs.Count} file(s). {_jobs.Count} queued.";
         UpdateEstimateSummary();
+        UpdateConvertButtonLabel();
     }
 
     private void ClearButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -180,8 +182,9 @@ public partial class MainWindow : Window
         _jobs.Clear();
         _estimateCts?.Cancel();
         ConversionProgressBar.Value = 0;
-        SummaryText.Text = "Queue cleared.";
+        SummaryText.Text = "List cleared.";
         EstimateSummaryText.Text = "Estimated output: --";
+        UpdateConvertButtonLabel();
     }
 
     private async void EstimateButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -233,7 +236,7 @@ public partial class MainWindow : Window
 
         if (_jobs.Count == 0)
         {
-            SummaryText.Text = "Add files first.";
+            SummaryText.Text = "Add at least one image to convert.";
             return;
         }
 
@@ -245,6 +248,7 @@ public partial class MainWindow : Window
         }
 
         _isConverting = true;
+        UpdateConvertButtonLabel();
         SetControlsEnabled(false);
         _estimateCts?.Cancel();
         ConversionProgressBar.Maximum = _jobs.Count;
@@ -262,10 +266,11 @@ public partial class MainWindow : Window
 
         _isConverting = false;
         SetControlsEnabled(true);
+        UpdateConvertButtonLabel();
         UpdateEstimateSummary();
         SummaryText.Text = failureCount == 0
             ? $"Converted {successCount} file(s) successfully."
-            : $"Completed with {failureCount} failure(s), {successCount} success(es).";
+            : $"Converted {successCount} file(s); {failureCount} failed. Review statuses for details.";
     }
 
     private async Task AddInputPathsAsync(IEnumerable<string> paths)
@@ -297,12 +302,14 @@ public partial class MainWindow : Window
 
         if (added.Count == 0)
         {
-            SummaryText.Text = $"No new supported files added. {_jobs.Count} queued.";
+            SummaryText.Text = $"No new supported images added. {_jobs.Count} queued.";
             UpdateEstimateSummary();
+            UpdateConvertButtonLabel();
             return;
         }
 
-        SummaryText.Text = $"Added {added.Count} file(s). {_jobs.Count} queued.";
+        SummaryText.Text = $"Added {added.Count} image(s). {_jobs.Count} queued.";
+        UpdateConvertButtonLabel();
         await RecalculateEstimatesAsync(added);
     }
 
@@ -389,6 +396,23 @@ public partial class MainWindow : Window
         OutputFolderTextBox.IsEnabled = enabled;
         ConvertButton.IsEnabled = enabled;
         UpdateQualityUi();
+        UpdateConvertButtonLabel();
+    }
+
+    private void UpdateConvertButtonLabel()
+    {
+        if (_isConverting)
+        {
+            ConvertButton.Content = "Converting...";
+            return;
+        }
+
+        ConvertButton.Content = _jobs.Count switch
+        {
+            0 => "Convert files",
+            1 => "Convert 1 file",
+            _ => $"Convert {_jobs.Count} files"
+        };
     }
 
     private OutputFormat GetSelectedFormat()

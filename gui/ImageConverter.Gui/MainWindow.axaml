@@ -11,7 +11,7 @@
         Height="720"
         MinWidth="900"
         MinHeight="600"
-        Title="Image Converter (C# GUI + Rust Core)">
+        Title="Image Converter">
     <Grid Margin="16"
           ColumnDefinitions="*,320"
           RowDefinitions="Auto,Auto,*,Auto"
@@ -29,11 +29,11 @@
                 DragDrop.DragOver="DropZone_OnDragOver"
                 DragDrop.Drop="DropZone_OnDrop">
             <StackPanel Spacing="4" HorizontalAlignment="Center">
-                <TextBlock Text="Drop images or folders here for bulk processing"
+                <TextBlock Text="Drop images or folders here to start converting"
                            FontSize="16"
                            FontWeight="SemiBold"
                            HorizontalAlignment="Center" />
-                <TextBlock Text="Supported inputs include PNG, JPEG, WebP, AVIF, TIFF, BMP, GIF, ICO, HDR, PNM, DDS, TGA, QOI, and EXR."
+                <TextBlock Text="Or use Add images / Add folder. Supported inputs include PNG, JPEG, WebP, AVIF, TIFF, BMP, GIF, ICO, HDR, PNM, DDS, TGA, QOI, and EXR."
                            MaxWidth="920"
                            TextWrapping="Wrap"
                            TextAlignment="Center"
@@ -42,11 +42,11 @@
         </Border>
 
         <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
-            <Button Name="AddFilesButton" Content="Add Files" Click="AddFilesButton_OnClick" />
-            <Button Name="AddFolderButton" Content="Add Folder" Click="AddFolderButton_OnClick" />
-            <Button Name="RemoveSelectedButton" Content="Remove Selected" Click="RemoveSelectedButton_OnClick" />
-            <Button Name="ClearButton" Content="Clear Queue" Click="ClearButton_OnClick" />
-            <Button Name="EstimateButton" Content="Refresh Estimates" Click="EstimateButton_OnClick" />
+            <Button Name="AddFilesButton" Content="Add images..." Click="AddFilesButton_OnClick" />
+            <Button Name="AddFolderButton" Content="Add folder..." Click="AddFolderButton_OnClick" />
+            <Button Name="RemoveSelectedButton" Content="Remove selected" Click="RemoveSelectedButton_OnClick" />
+            <Button Name="ClearButton" Content="Clear list" Click="ClearButton_OnClick" />
+            <Button Name="EstimateButton" Content="Estimate sizes" Click="EstimateButton_OnClick" />
         </StackPanel>
 
         <DataGrid Grid.Row="2"
@@ -70,7 +70,7 @@
 
         <Grid Grid.Row="3" Grid.Column="0" ColumnDefinitions="*,240" ColumnSpacing="16">
             <StackPanel Grid.Column="0" Spacing="3">
-                <TextBlock Name="SummaryText" Text="Queue is empty." />
+                <TextBlock Name="SummaryText" Text="No images yet. Add files or drop a folder to begin." />
                 <TextBlock Name="EstimateSummaryText" Text="Estimated output: --" Foreground="#D0D0D0" />
             </StackPanel>
 
@@ -131,12 +131,12 @@
                              TextWrapping="WrapWithOverflow"
                              AcceptsReturn="True"
                              MinHeight="58" />
-                    <Button Name="BrowseOutputButton" Content="Browse..." Click="BrowseOutputButton_OnClick" />
+                    <Button Name="BrowseOutputButton" Content="Choose folder..." Click="BrowseOutputButton_OnClick" />
                 </StackPanel>
 
                 <Button Grid.Row="7"
                         Name="ConvertButton"
-                        Content="Convert All"
+                        Content="Convert files"
                         Click="ConvertButton_OnClick"
                         VerticalAlignment="Bottom"
                         HorizontalAlignment="Stretch"
