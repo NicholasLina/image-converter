@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using Avalonia.Interactivity;
 using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Platform.Storage;
@@ -27,21 +28,22 @@ public partial class MainWindow : Window
     };
 
     private readonly ObservableCollection<ConversionJob> _jobs = new();
+    private readonly string _defaultOutputFolder = Path.Combine(
+        Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
+        "converted-images");
     private CancellationTokenSource? _estimateCts;
     private bool _isConverting;
 
     public MainWindow()
     {
         InitializeComponent();
+        AddHandler(KeyDownEvent, MainWindow_OnKeyDown, RoutingStrategies.Tunnel);
         JobsGrid.ItemsSource = _jobs;
-        FormatComboBox.SelectedIndex = 0;
-        QualitySlider.Value = 85;
-        OutputFolderTextBox.Text = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
-            "converted-images");
+        LoadSettings();
         UpdateQualityUi();
-        SummaryText.Text = "Queue is empty.";
+        SummaryText.Text = "No images yet. Add files or drop a folder to begin.";
         EstimateSummaryText.Text = "Estimated output: --";
+        UpdateConvertButtonLabel();
     }
 
     private async void AddFilesButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -144,6 +146,44 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void MainWindow_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_isConverting)
+        {
+            return;
+        }
+
+        bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+
+        if (ctrl && shift && e.Key == Key.O)
+        {
+            AddFolderButton_OnClick(AddFolderButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (ctrl && !shift && e.Key == Key.O)
+        {
+            AddFilesButton_OnClick(AddFilesButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Delete)
+        {
+            RemoveSelectedButton_OnClick(RemoveSelectedButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (ctrl && e.Key == Key.Enter)
+        {
+            ConvertButton_OnClick(ConvertButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+        }
+    }
+
     private void RemoveSelectedButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (_isConverting)
@@ -168,6 +208,7 @@ public partial class MainWindow : Window
 
         SummaryText.Text = $"Removed {selectedJobs.Count} file(s). {_jobs.Count} queued.";
         UpdateEstimateSummary();
+        UpdateConvertButtonLabel();
     }
 
     private void ClearButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -180,8 +221,9 @@ public partial class MainWindow : Window
         _jobs.Clear();
         _estimateCts?.Cancel();
         ConversionProgressBar.Value = 0;
-        SummaryText.Text = "Queue cleared.";
+        SummaryText.Text = "List cleared.";
         EstimateSummaryText.Text = "Estimated output: --";
+        UpdateConvertButtonLabel();
     }
 
     private async void EstimateButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -193,6 +235,7 @@ public partial class MainWindow : Window
     {
         UpdateQualityUi();
         _ = RecalculateEstimatesAsync();
+        SaveSettings();
     }
 
     private void QualitySlider_OnValueChanged(object? sender, Avalonia.Controls.Primitives.RangeBaseValueChangedEventArgs e)
@@ -200,6 +243,7 @@ public partial class MainWindow : Window
         if (QualityLabel is null) return;
         QualityLabel.Text = $"{(int)Math.Round(e.NewValue)}";
         _ = RecalculateEstimatesAsync();
+        SaveSettings();
     }
 
     private async void BrowseOutputButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
@@ -221,6 +265,7 @@ public partial class MainWindow : Window
         if (!string.IsNullOrWhiteSpace(folderPath))
         {
             OutputFolderTextBox.Text = folderPath;
+            SaveSettings();
         }
     }
 
@@ -233,7 +278,7 @@ public partial class MainWindow : Window
 
         if (_jobs.Count == 0)
         {
-            SummaryText.Text = "Add files first.";
+            SummaryText.Text = "Add at least one image to convert.";
             return;
         }
 
@@ -245,6 +290,7 @@ public partial class MainWindow : Window
         }
 
         _isConverting = true;
+        UpdateConvertButtonLabel();
         SetControlsEnabled(false);
         _estimateCts?.Cancel();
         ConversionProgressBar.Maximum = _jobs.Count;
@@ -262,10 +308,11 @@ public partial class MainWindow : Window
 
         _isConverting = false;
         SetControlsEnabled(true);
+        UpdateConvertButtonLabel();
         UpdateEstimateSummary();
         SummaryText.Text = failureCount == 0
             ? $"Converted {successCount} file(s) successfully."
-            : $"Completed with {failureCount} failure(s), {successCount} success(es).";
+            : $"Converted {successCount} file(s); {failureCount} failed. Review statuses for details.";
     }
 
     private async Task AddInputPathsAsync(IEnumerable<string> paths)
@@ -297,12 +344,14 @@ public partial class MainWindow : Window
 
         if (added.Count == 0)
         {
-            SummaryText.Text = $"No new supported files added. {_jobs.Count} queued.";
+            SummaryText.Text = $"No new supported images added. {_jobs.Count} queued.";
             UpdateEstimateSummary();
+            UpdateConvertButtonLabel();
             return;
         }
 
-        SummaryText.Text = $"Added {added.Count} file(s). {_jobs.Count} queued.";
+        SummaryText.Text = $"Added {added.Count} image(s). {_jobs.Count} queued.";
+        UpdateConvertButtonLabel();
         await RecalculateEstimatesAsync(added);
     }
 
@@ -389,6 +438,23 @@ public partial class MainWindow : Window
         OutputFolderTextBox.IsEnabled = enabled;
         ConvertButton.IsEnabled = enabled;
         UpdateQualityUi();
+        UpdateConvertButtonLabel();
+    }
+
+    private void UpdateConvertButtonLabel()
+    {
+        if (_isConverting)
+        {
+            ConvertButton.Content = "Converting...";
+            return;
+        }
+
+        ConvertButton.Content = _jobs.Count switch
+        {
+            0 => "Convert files",
+            1 => "Convert 1 file",
+            _ => $"Convert {_jobs.Count} files"
+        };
     }
 
     private OutputFormat GetSelectedFormat()
@@ -401,5 +467,43 @@ public partial class MainWindow : Window
         }
 
         return OutputFormat.Jpeg;
+    }
+
+    private void LoadSettings()
+    {
+        AppSettings settings = AppSettingsService.Load();
+
+        int selectedIndex = settings.OutputFormat switch
+        {
+            OutputFormat.Jpeg => 0,
+            OutputFormat.Png => 1,
+            OutputFormat.WebP => 2,
+            OutputFormat.Avif => 3,
+            OutputFormat.Tiff => 4,
+            OutputFormat.Bmp => 5,
+            OutputFormat.Gif => 6,
+            _ => 0
+        };
+
+        FormatComboBox.SelectedIndex = selectedIndex;
+        QualitySlider.Value = settings.Quality;
+        OutputFolderTextBox.Text = settings.OutputFolder ?? _defaultOutputFolder;
+    }
+
+    private void SaveSettings()
+    {
+        if (!IsInitialized)
+        {
+            return;
+        }
+
+        AppSettings settings = new()
+        {
+            OutputFormat = GetSelectedFormat(),
+            Quality = (int)Math.Round(QualitySlider.Value),
+            OutputFolder = OutputFolderTextBox.Text?.Trim()
+        };
+
+        AppSettingsService.Save(settings);
     }
 }

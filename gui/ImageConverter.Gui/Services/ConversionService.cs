@@ -30,16 +30,7 @@ public class ConversionService
         string extension = outputFormat.FileExtension();
         string outputPath = FileSystemService.BuildOutputPath(outputFolder, baseFileName, extension);
 
-        return await Task.Run(() =>
-        {
-            bool converted = RustInterop.ConvertImage(
-                job.InputPath,
-                outputPath,
-                outputFormat,
-                quality,
-                out string errorMessage);
-            return (converted, errorMessage);
-        });
+        return await ConvertImageToOutputPathAsync(job, outputPath, outputFormat, quality);
     }
 
     /// <summary>
@@ -114,18 +105,21 @@ public class ConversionService
         foreach (ConversionJob job in jobs)
         {
             job.Status = "Converting...";
+            string baseFileName = Path.GetFileNameWithoutExtension(job.FileName);
+            string extension = outputFormat.FileExtension();
+            string outputPath = FileSystemService.BuildOutputPath(outputFolder, baseFileName, extension);
             
-            (bool success, string error) = await ConvertImageAsync(job, outputFolder, outputFormat, quality);
+            (bool success, string error) = await ConvertImageToOutputPathAsync(
+                job,
+                outputPath,
+                outputFormat,
+                quality);
 
             if (success)
             {
                 successCount++;
                 job.Status = "Done";
-                
-                string baseFileName = Path.GetFileNameWithoutExtension(job.FileName);
-                string extension = outputFormat.FileExtension();
-                string outputPath = FileSystemService.BuildOutputPath(outputFolder, baseFileName, extension);
-                
+
                 if (File.Exists(outputPath))
                 {
                     job.EstimatedSizeBytes = new FileInfo(outputPath).Length;
@@ -147,4 +141,22 @@ public class ConversionService
         string.IsNullOrWhiteSpace(text) || text.Length <= maxLength
             ? text
             : $"{text[..(maxLength - 3)]}...";
+
+    private static async Task<(bool success, string error)> ConvertImageToOutputPathAsync(
+        ConversionJob job,
+        string outputPath,
+        OutputFormat outputFormat,
+        int quality)
+    {
+        return await Task.Run(() =>
+        {
+            bool converted = RustInterop.ConvertImage(
+                job.InputPath,
+                outputPath,
+                outputFormat,
+                quality,
+                out string errorMessage);
+            return (converted, errorMessage);
+        });
+    }
 }
