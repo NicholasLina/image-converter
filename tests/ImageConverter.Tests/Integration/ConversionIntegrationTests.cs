@@ -147,6 +147,8 @@ public class ConversionIntegrationTests : IDisposable
         Assert.Equal(2, successCount);
         Assert.Equal(0, failureCount);
         Assert.All(jobs, job => Assert.Equal("Done", job.Status));
+        Assert.All(jobs, job => Assert.NotNull(job.EstimatedSizeBytes));
+        Assert.All(jobs, job => Assert.True(job.EstimatedSizeBytes > 0));
         
         var outputFiles = Directory.GetFiles(outputDir, "*.jpg");
         Assert.Equal(2, outputFiles.Length);
