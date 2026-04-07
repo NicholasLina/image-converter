@@ -11,8 +11,7 @@
         Height="720"
         MinWidth="900"
         MinHeight="600"
-        Title="Image Converter"
-        KeyDown="MainWindow_OnKeyDown">
+        Title="Image Converter">
     <Grid Margin="16"
           ColumnDefinitions="*,320"
           RowDefinitions="Auto,Auto,*,Auto"
