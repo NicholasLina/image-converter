@@ -11,7 +11,8 @@
         Height="720"
         MinWidth="900"
         MinHeight="600"
-        Title="Image Converter">
+        Title="Image Converter"
+        KeyDown="MainWindow_OnKeyDown">
     <Grid Margin="16"
           ColumnDefinitions="*,320"
           RowDefinitions="Auto,Auto,*,Auto"
@@ -27,7 +28,9 @@
                 Padding="16"
                 DragDrop.AllowDrop="True"
                 DragDrop.DragOver="DropZone_OnDragOver"
-                DragDrop.Drop="DropZone_OnDrop">
+                DragDrop.Drop="DropZone_OnDrop"
+                AutomationProperties.Name="Drop zone"
+                AutomationProperties.HelpText="Drop image files or folders to add them to the conversion queue.">
             <StackPanel Spacing="4" HorizontalAlignment="Center">
                 <TextBlock Text="Drop images or folders here to start converting"
                            FontSize="16"
@@ -42,11 +45,36 @@
         </Border>
 
         <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
-            <Button Name="AddFilesButton" Content="Add images..." Click="AddFilesButton_OnClick" />
-            <Button Name="AddFolderButton" Content="Add folder..." Click="AddFolderButton_OnClick" />
-            <Button Name="RemoveSelectedButton" Content="Remove selected" Click="RemoveSelectedButton_OnClick" />
-            <Button Name="ClearButton" Content="Clear list" Click="ClearButton_OnClick" />
-            <Button Name="EstimateButton" Content="Estimate sizes" Click="EstimateButton_OnClick" />
+            <Button Name="AddFilesButton"
+                    Content="Add images..."
+                    Click="AddFilesButton_OnClick"
+                    TabIndex="0"
+                    AutomationProperties.Name="Add image files"
+                    AutomationProperties.HelpText="Open a file picker to add one or more image files. Shortcut: Ctrl+O." />
+            <Button Name="AddFolderButton"
+                    Content="Add folder..."
+                    Click="AddFolderButton_OnClick"
+                    TabIndex="1"
+                    AutomationProperties.Name="Add image folder"
+                    AutomationProperties.HelpText="Open a folder picker to import supported images recursively. Shortcut: Ctrl+Shift+O." />
+            <Button Name="RemoveSelectedButton"
+                    Content="Remove selected"
+                    Click="RemoveSelectedButton_OnClick"
+                    TabIndex="2"
+                    AutomationProperties.Name="Remove selected rows"
+                    AutomationProperties.HelpText="Remove selected conversion jobs from the queue. Shortcut: Delete." />
+            <Button Name="ClearButton"
+                    Content="Clear list"
+                    Click="ClearButton_OnClick"
+                    TabIndex="3"
+                    AutomationProperties.Name="Clear queue"
+                    AutomationProperties.HelpText="Remove all queued jobs." />
+            <Button Name="EstimateButton"
+                    Content="Estimate sizes"
+                    Click="EstimateButton_OnClick"
+                    TabIndex="4"
+                    AutomationProperties.Name="Estimate output sizes"
+                    AutomationProperties.HelpText="Refresh output size estimates for queued jobs." />
         </StackPanel>
 
         <DataGrid Grid.Row="2"
@@ -58,7 +86,10 @@
                   SelectionMode="Extended"
                   GridLinesVisibility="Horizontal"
                   CanUserSortColumns="False"
-                  CanUserReorderColumns="False">
+                  CanUserReorderColumns="False"
+                  TabIndex="5"
+                  AutomationProperties.Name="Conversion queue"
+                  AutomationProperties.HelpText="List of queued files with source size, estimated output size, and status.">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="2*" />
                 <DataGridTextColumn Header="Input Path" Binding="{Binding InputPath}" Width="4*" />
@@ -96,7 +127,10 @@
                 <ComboBox Grid.Row="1"
                           Name="FormatComboBox"
                           Margin="0,6,0,12"
-                          SelectionChanged="FormatComboBox_OnSelectionChanged">
+                          SelectionChanged="FormatComboBox_OnSelectionChanged"
+                          TabIndex="6"
+                          AutomationProperties.Name="Output format"
+                          AutomationProperties.HelpText="Select the destination image format for conversion.">
                     <ComboBoxItem Content="JPEG (.jpg)" Tag="Jpeg" />
                     <ComboBoxItem Content="PNG (.png)" Tag="Png" />
                     <ComboBoxItem Content="WebP (.webp)" Tag="WebP" />
@@ -114,7 +148,10 @@
                             Maximum="100"
                             TickFrequency="1"
                             ValueChanged="QualitySlider_OnValueChanged"
-                            IsSnapToTickEnabled="True" />
+                            IsSnapToTickEnabled="True"
+                            TabIndex="7"
+                            AutomationProperties.Name="Quality slider"
+                            AutomationProperties.HelpText="Adjust JPEG and AVIF quality from 1 to 100." />
                     <TextBlock Grid.Column="1" Name="QualityLabel" Text="85" VerticalAlignment="Center" />
                 </Grid>
                 <TextBlock Grid.Row="4"
@@ -130,8 +167,16 @@
                              Watermark="Choose destination folder"
                              TextWrapping="WrapWithOverflow"
                              AcceptsReturn="True"
-                             MinHeight="58" />
-                    <Button Name="BrowseOutputButton" Content="Choose folder..." Click="BrowseOutputButton_OnClick" />
+                             MinHeight="58"
+                             TabIndex="8"
+                             AutomationProperties.Name="Output folder path"
+                             AutomationProperties.HelpText="Current destination folder for converted files." />
+                    <Button Name="BrowseOutputButton"
+                            Content="Choose folder..."
+                            Click="BrowseOutputButton_OnClick"
+                            TabIndex="9"
+                            AutomationProperties.Name="Choose output folder"
+                            AutomationProperties.HelpText="Open a folder picker to choose where converted files are saved." />
                 </StackPanel>
 
                 <Button Grid.Row="7"
@@ -141,7 +186,10 @@
                         VerticalAlignment="Bottom"
                         HorizontalAlignment="Stretch"
                         Margin="0,16,0,0"
-                        Classes="accent" />
+                        Classes="accent"
+                        TabIndex="10"
+                        AutomationProperties.Name="Convert queued images"
+                        AutomationProperties.HelpText="Start conversion for all queued images. Shortcut: Ctrl+Enter." />
             </Grid>
         </Border>
     </Grid>

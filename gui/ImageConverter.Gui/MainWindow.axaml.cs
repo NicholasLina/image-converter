@@ -145,6 +145,44 @@ public partial class MainWindow : Window
         e.Handled = true;
     }
 
+    private void MainWindow_OnKeyDown(object? sender, KeyEventArgs e)
+    {
+        if (_isConverting)
+        {
+            return;
+        }
+
+        bool ctrl = e.KeyModifiers.HasFlag(KeyModifiers.Control);
+        bool shift = e.KeyModifiers.HasFlag(KeyModifiers.Shift);
+
+        if (ctrl && shift && e.Key == Key.O)
+        {
+            AddFolderButton_OnClick(AddFolderButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (ctrl && !shift && e.Key == Key.O)
+        {
+            AddFilesButton_OnClick(AddFilesButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (e.Key == Key.Delete)
+        {
+            RemoveSelectedButton_OnClick(RemoveSelectedButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+            return;
+        }
+
+        if (ctrl && e.Key == Key.Enter)
+        {
+            ConvertButton_OnClick(ConvertButton, new Avalonia.Interactivity.RoutedEventArgs());
+            e.Handled = true;
+        }
+    }
+
     private void RemoveSelectedButton_OnClick(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         if (_isConverting)
