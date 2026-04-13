@@ -6,8 +6,9 @@ namespace ImageConverter.Gui.Services;
 
 /// <summary>
 /// Provides P/Invoke interop with the Rust native image conversion library.
+/// Implements <see cref="IImageConverter"/> so it can be replaced with a mock in tests.
 /// </summary>
-public static class RustInterop
+public sealed class RustInterop : IImageConverter
 {
     private const string LibraryName = "image_core";
 
@@ -29,22 +30,17 @@ public static class RustInterop
     [DllImport(LibraryName, EntryPoint = "free_rust_string", CallingConvention = CallingConvention.Cdecl)]
     private static extern void FreeRustString(IntPtr value);
 
-    /// <summary>
-    /// Converts an image file to the specified format.
-    /// </summary>
-    /// <param name="inputPath">Path to the input image file.</param>
-    /// <param name="outputPath">Path where the converted image will be saved.</param>
-    /// <param name="outputFormat">The target output format.</param>
-    /// <param name="quality">Quality setting (1-100) for lossy formats.</param>
-    /// <param name="errorMessage">Output parameter containing error details if conversion fails.</param>
-    /// <returns>True if conversion succeeded, false otherwise.</returns>
-    public static bool ConvertImage(
+    /// <inheritdoc />
+    public bool ConvertImage(
         string inputPath,
         string outputPath,
         OutputFormat outputFormat,
         int quality,
         out string errorMessage)
     {
+        ArgumentNullException.ThrowIfNull(inputPath);
+        ArgumentNullException.ThrowIfNull(outputPath);
+
         IntPtr errorPtr = IntPtr.Zero;
         errorMessage = string.Empty;
 
@@ -91,18 +87,14 @@ public static class RustInterop
         }
     }
 
-    /// <summary>
-    /// Estimates the output file size for a conversion without writing to disk.
-    /// </summary>
-    /// <param name="inputPath">Path to the input image file.</param>
-    /// <param name="outputFormat">The target output format.</param>
-    /// <param name="quality">Quality setting (1-100) for lossy formats.</param>
-    /// <returns>The estimated size in bytes, or null if estimation failed.</returns>
-    public static long? EstimateOutputSize(
+    /// <inheritdoc />
+    public long? EstimateOutputSize(
         string inputPath,
         OutputFormat outputFormat,
         int quality)
     {
+        ArgumentNullException.ThrowIfNull(inputPath);
+
         try
         {
             long value = EstimateOutputSizeNative(

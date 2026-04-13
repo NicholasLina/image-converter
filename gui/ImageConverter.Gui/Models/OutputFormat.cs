@@ -1,3 +1,5 @@
+using System;
+
 namespace ImageConverter.Gui.Models;
 
 /// <summary>
@@ -45,6 +47,7 @@ public static class OutputFormatExtensions
     /// </summary>
     /// <param name="format">The output format.</param>
     /// <returns>The file extension string.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">Thrown when the format value is not recognized.</exception>
     public static string FileExtension(this OutputFormat format) =>
         format switch
         {
@@ -55,6 +58,6 @@ public static class OutputFormatExtensions
             OutputFormat.Tiff => "tiff",
             OutputFormat.Bmp => "bmp",
             OutputFormat.Gif => "gif",
-            _ => "img"
+            _ => throw new ArgumentOutOfRangeException(nameof(format), format, "Unknown output format.")
         };
 }

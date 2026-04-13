@@ -2,7 +2,6 @@ using ImageConverter.Gui.Models;
 using ImageConverter.Gui.Services;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.PixelFormats;
-using SixLabors.ImageSharp.Processing;
 using Xunit;
 
 namespace ImageConverter.Tests.Integration;
@@ -15,14 +14,17 @@ public class ConversionIntegrationTests : IDisposable
 {
     private readonly string _tempDir;
     private readonly string _testImagePath;
+    private readonly ConversionService _sut;
 
     public ConversionIntegrationTests()
     {
         _tempDir = Path.Combine(Path.GetTempPath(), $"ImageConverterTests_{Guid.NewGuid()}");
         Directory.CreateDirectory(_tempDir);
-        
+
         _testImagePath = Path.Combine(_tempDir, "test_source.png");
         CreateTestImage(_testImagePath, 100, 100);
+
+        _sut = new ConversionService(new RustInterop());
     }
 
     public void Dispose()
@@ -35,7 +37,6 @@ public class ConversionIntegrationTests : IDisposable
             }
             catch
             {
-                // Ignore cleanup errors
             }
         }
     }
@@ -43,8 +44,7 @@ public class ConversionIntegrationTests : IDisposable
     private static void CreateTestImage(string path, int width, int height)
     {
         using var image = new Image<Rgba32>(width, height);
-        
-        // Create a simple gradient pattern
+
         for (int y = 0; y < height; y++)
         {
             for (int x = 0; x < width; x++)
@@ -55,7 +55,7 @@ public class ConversionIntegrationTests : IDisposable
                 image[x, y] = new Rgba32(r, g, b, 255);
             }
         }
-        
+
         image.SaveAsPng(path);
     }
 
@@ -72,10 +72,10 @@ public class ConversionIntegrationTests : IDisposable
         string outputDir = Path.Combine(_tempDir, "output");
         Directory.CreateDirectory(outputDir);
 
-        var (success, error) = await ConversionService.ConvertImageAsync(job, outputDir, format, 85);
+        var (success, error) = await _sut.ConvertImageAsync(job, outputDir, format, 85);
 
         Assert.True(success, $"Conversion failed: {error}");
-        
+
         string expectedExtension = format.FileExtension();
         var outputFiles = Directory.GetFiles(outputDir, $"*.{expectedExtension}");
         Assert.Single(outputFiles);
@@ -89,11 +89,11 @@ public class ConversionIntegrationTests : IDisposable
         string outputDir = Path.Combine(_tempDir, "quality_test");
         Directory.CreateDirectory(outputDir);
 
-        var (success, error) = await ConversionService.ConvertImageAsync(
+        var (success, error) = await _sut.ConvertImageAsync(
             job, outputDir, OutputFormat.Jpeg, 50);
 
         Assert.True(success, $"Conversion failed: {error}");
-        
+
         var outputFiles = Directory.GetFiles(outputDir, "*.jpg");
         Assert.Single(outputFiles);
     }
@@ -103,7 +103,7 @@ public class ConversionIntegrationTests : IDisposable
     {
         var job = new ConversionJob(_testImagePath, new FileInfo(_testImagePath).Length);
 
-        long? estimate = await ConversionService.EstimateOutputSizeAsync(
+        long? estimate = await _sut.EstimateOutputSizeAsync(
             job, OutputFormat.Jpeg, 85);
 
         Assert.NotNull(estimate);
@@ -119,7 +119,7 @@ public class ConversionIntegrationTests : IDisposable
             new ConversionJob(_testImagePath, new FileInfo(_testImagePath).Length)
         };
 
-        await ConversionService.EstimateBatchAsync(jobs, OutputFormat.Jpeg, 85);
+        await _sut.EstimateBatchAsync(jobs, OutputFormat.Jpeg, 85);
 
         Assert.All(jobs, job => Assert.NotNull(job.EstimatedSizeBytes));
         Assert.All(jobs, job => Assert.True(job.EstimatedSizeBytes > 0));
@@ -141,7 +141,7 @@ public class ConversionIntegrationTests : IDisposable
 
         string outputDir = Path.Combine(_tempDir, "batch_output");
 
-        var (successCount, failureCount) = await ConversionService.ConvertBatchAsync(
+        var (successCount, failureCount) = await _sut.ConvertBatchAsync(
             jobs, outputDir, OutputFormat.Jpeg, 85);
 
         Assert.Equal(2, successCount);
@@ -149,7 +149,7 @@ public class ConversionIntegrationTests : IDisposable
         Assert.All(jobs, job => Assert.Equal("Done", job.Status));
         Assert.All(jobs, job => Assert.NotNull(job.EstimatedSizeBytes));
         Assert.All(jobs, job => Assert.True(job.EstimatedSizeBytes > 0));
-        
+
         var outputFiles = Directory.GetFiles(outputDir, "*.jpg");
         Assert.Equal(2, outputFiles.Length);
     }
@@ -159,16 +159,16 @@ public class ConversionIntegrationTests : IDisposable
     {
         var job = new ConversionJob(_testImagePath, new FileInfo(_testImagePath).Length);
         string outputDir = Path.Combine(_tempDir, "progress_test");
-        
+
         int callbackCount = 0;
         ConversionJob? lastJob = null;
 
-        var (successCount, failureCount) = await ConversionService.ConvertBatchAsync(
+        var (successCount, failureCount) = await _sut.ConvertBatchAsync(
             new[] { job },
             outputDir,
             OutputFormat.Jpeg,
             85,
-            (j, s, f) =>
+            progressCallback: (j, s, f) =>
             {
                 callbackCount++;
                 lastJob = j;
@@ -186,7 +186,7 @@ public class ConversionIntegrationTests : IDisposable
         var job = new ConversionJob(nonExistentPath, 0);
         string outputDir = Path.Combine(_tempDir, "error_test");
 
-        var (success, error) = await ConversionService.ConvertImageAsync(
+        var (success, error) = await _sut.ConvertImageAsync(
             job, outputDir, OutputFormat.Jpeg, 85);
 
         Assert.False(success);
@@ -199,7 +199,7 @@ public class ConversionIntegrationTests : IDisposable
         string nonExistentPath = Path.Combine(_tempDir, "nonexistent.png");
         var job = new ConversionJob(nonExistentPath, 0);
 
-        long? estimate = await ConversionService.EstimateOutputSizeAsync(
+        long? estimate = await _sut.EstimateOutputSizeAsync(
             job, OutputFormat.Jpeg, 85);
 
         Assert.Null(estimate);
@@ -220,7 +220,7 @@ public class ConversionIntegrationTests : IDisposable
 
         string outputDir = Path.Combine(_tempDir, "mixed_test");
 
-        var (successCount, failureCount) = await ConversionService.ConvertBatchAsync(
+        var (successCount, failureCount) = await _sut.ConvertBatchAsync(
             jobs, outputDir, OutputFormat.Jpeg, 85);
 
         Assert.Equal(1, successCount);
@@ -249,7 +249,7 @@ public class ConversionIntegrationTests : IDisposable
     {
         string searchDir = Path.Combine(_tempDir, "search_test");
         Directory.CreateDirectory(searchDir);
-        
+
         CreateTestImage(Path.Combine(searchDir, "image1.png"), 10, 10);
         CreateTestImage(Path.Combine(searchDir, "image2.png"), 10, 10);
         File.WriteAllText(Path.Combine(searchDir, "readme.txt"), "test");
@@ -269,9 +269,9 @@ public class ConversionIntegrationTests : IDisposable
     {
         var job = new ConversionJob(_testImagePath, new FileInfo(_testImagePath).Length);
 
-        long? lowEstimate = await ConversionService.EstimateOutputSizeAsync(
+        long? lowEstimate = await _sut.EstimateOutputSizeAsync(
             job, OutputFormat.Jpeg, lowQuality);
-        long? highEstimate = await ConversionService.EstimateOutputSizeAsync(
+        long? highEstimate = await _sut.EstimateOutputSizeAsync(
             job, OutputFormat.Jpeg, highQuality);
 
         Assert.NotNull(lowEstimate);
@@ -286,10 +286,41 @@ public class ConversionIntegrationTests : IDisposable
         var job = new ConversionJob(_testImagePath, new FileInfo(_testImagePath).Length);
         string outputDir = Path.Combine(_tempDir, "auto_create", "nested", "dir");
 
-        var (success, error) = await ConversionService.ConvertImageAsync(
+        var (success, error) = await _sut.ConvertImageAsync(
             job, outputDir, OutputFormat.Jpeg, 85);
 
         Assert.True(success, $"Conversion failed: {error}");
         Assert.True(Directory.Exists(outputDir));
+    }
+
+    [Fact]
+    public async Task ConvertBatchAsync_SupportsCancellation()
+    {
+        string image1 = Path.Combine(_tempDir, "cancel1.png");
+        string image2 = Path.Combine(_tempDir, "cancel2.png");
+        CreateTestImage(image1, 50, 50);
+        CreateTestImage(image2, 50, 50);
+
+        var jobs = new[]
+        {
+            new ConversionJob(image1, new FileInfo(image1).Length),
+            new ConversionJob(image2, new FileInfo(image2).Length)
+        };
+
+        string outputDir = Path.Combine(_tempDir, "cancel_test");
+        using var cts = new CancellationTokenSource();
+
+        var (successCount, failureCount) = await _sut.ConvertBatchAsync(
+            jobs,
+            outputDir,
+            OutputFormat.Jpeg,
+            85,
+            cts.Token,
+            (_, s, _) =>
+            {
+                if (s >= 1) cts.Cancel();
+            });
+
+        Assert.True(successCount + failureCount <= 2);
     }
 }

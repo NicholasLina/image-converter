@@ -81,7 +81,7 @@ public class AppSettingsServiceTests
     }
 
     [Fact]
-    public void Load_WhenValuesOutOfRange_UsesSanitizedDefaults()
+    public void Load_WhenValuesOutOfRange_ClampsToBounds()
     {
         string tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
         Directory.CreateDirectory(tempDir);
@@ -100,7 +100,7 @@ public class AppSettingsServiceTests
             AppSettings loaded = AppSettingsService.Load(settingsPath);
 
             Assert.Equal(OutputFormat.Jpeg, loaded.OutputFormat);
-            Assert.Equal(85, loaded.Quality);
+            Assert.Equal(100, loaded.Quality);
             Assert.Null(loaded.OutputFolder);
         }
         finally

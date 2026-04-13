@@ -198,4 +198,32 @@ public class FileSystemServiceTests
             }
         }
     }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void IsSupportedInput_NullOrEmptyPath_ReturnsFalse(string? path)
+    {
+        Assert.False(FileSystemService.IsSupportedInput(path!));
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void EnumerateSupportedFiles_NullOrEmptyFolder_ReturnsEmptyList(string? folderPath)
+    {
+        var result = FileSystemService.EnumerateSupportedFiles(folderPath!);
+        Assert.NotNull(result);
+        Assert.Empty(result);
+    }
+
+    [Fact]
+    public void BuildOutputPath_NullArguments_ThrowsArgumentNullException()
+    {
+        Assert.Throws<ArgumentNullException>(() => FileSystemService.BuildOutputPath(null!, "test", "jpg"));
+        Assert.Throws<ArgumentNullException>(() => FileSystemService.BuildOutputPath("/tmp", null!, "jpg"));
+        Assert.Throws<ArgumentNullException>(() => FileSystemService.BuildOutputPath("/tmp", "test", null!));
+    }
 }

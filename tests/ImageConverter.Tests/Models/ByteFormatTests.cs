@@ -81,4 +81,14 @@ public class ByteFormatTests
         string result = ByteFormat.Format(bytes);
         Assert.Contains("TB", result);
     }
+
+    [Theory]
+    [InlineData(-1, "0 B")]
+    [InlineData(-1024, "0 B")]
+    [InlineData(long.MinValue, "0 B")]
+    public void Format_NegativeBytes_ReturnZeroBytes(long bytes, string expected)
+    {
+        string result = ByteFormat.Format(bytes);
+        Assert.Equal(expected, result);
+    }
 }

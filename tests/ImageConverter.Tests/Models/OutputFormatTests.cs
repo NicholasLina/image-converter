@@ -57,4 +57,11 @@ public class OutputFormatTests
             Assert.DoesNotContain(" ", extension);
         }
     }
+
+    [Fact]
+    public void FileExtension_InvalidFormat_Throws()
+    {
+        var invalid = (OutputFormat)999;
+        Assert.Throws<ArgumentOutOfRangeException>(() => invalid.FileExtension());
+    }
 }

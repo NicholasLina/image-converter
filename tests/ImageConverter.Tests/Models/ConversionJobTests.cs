@@ -138,4 +138,25 @@ public class ConversionJobTests
         job.EstimatedSizeBytes = 2048; // Same as current value
         Assert.Equal(2, eventCount);
     }
+
+    [Fact]
+    public void Constructor_NullInputPath_Throws()
+    {
+        Assert.Throws<ArgumentNullException>(() => new ConversionJob(null!, 100));
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public void Constructor_EmptyOrWhitespaceInputPath_Throws(string inputPath)
+    {
+        Assert.Throws<ArgumentException>(() => new ConversionJob(inputPath, 100));
+    }
+
+    [Fact]
+    public void Constructor_NegativeSize_ClampsToZero()
+    {
+        var job = new ConversionJob("/path/to/image.png", -500);
+        Assert.Equal(0, job.SourceSizeBytes);
+    }
 }

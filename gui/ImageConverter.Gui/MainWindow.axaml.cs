@@ -18,7 +18,7 @@ namespace ImageConverter.Gui;
 /// Main window for the Image Converter application.
 /// Provides UI for batch image conversion with drag-and-drop support.
 /// </summary>
-public partial class MainWindow : Window
+public partial class MainWindow : Window, IDisposable
 {
     private static readonly FilePickerFileType ImageFilePickerType = new("Image Files")
     {
@@ -28,6 +28,7 @@ public partial class MainWindow : Window
     };
 
     private readonly ObservableCollection<ConversionJob> _jobs = new();
+    private readonly ConversionService _conversionService = new(new RustInterop());
     private readonly string _defaultOutputFolder = Path.Combine(
         Environment.GetFolderPath(Environment.SpecialFolder.MyPictures),
         "converted-images");
@@ -220,6 +221,8 @@ public partial class MainWindow : Window
 
         _jobs.Clear();
         _estimateCts?.Cancel();
+        _estimateCts?.Dispose();
+        _estimateCts = null;
         ConversionProgressBar.Value = 0;
         SummaryText.Text = "List cleared.";
         EstimateSummaryText.Text = "Estimated output: --";
@@ -299,12 +302,12 @@ public partial class MainWindow : Window
         OutputFormat outputFormat = GetSelectedFormat();
         int quality = (int)Math.Round(QualitySlider.Value);
 
-        (int successCount, int failureCount) = await ConversionService.ConvertBatchAsync(
+        (int successCount, int failureCount) = await _conversionService.ConvertBatchAsync(
             _jobs,
             outputFolder,
             outputFormat,
             quality,
-            (job, success, failure) => ConversionProgressBar.Value = success + failure);
+            progressCallback: (job, success, failure) => ConversionProgressBar.Value = success + failure);
 
         _isConverting = false;
         SetControlsEnabled(true);
@@ -364,6 +367,7 @@ public partial class MainWindow : Window
         }
 
         _estimateCts?.Cancel();
+        _estimateCts?.Dispose();
         _estimateCts = new CancellationTokenSource();
         CancellationToken token = _estimateCts.Token;
 
@@ -373,7 +377,7 @@ public partial class MainWindow : Window
 
         try
         {
-            await ConversionService.EstimateBatchAsync(targets, outputFormat, quality, token);
+            await _conversionService.EstimateBatchAsync(targets, outputFormat, quality, token);
         }
         catch (OperationCanceledException)
         {
@@ -505,5 +509,22 @@ public partial class MainWindow : Window
         };
 
         AppSettingsService.Save(settings);
+    }
+
+    /// <inheritdoc />
+    protected override void OnClosed(EventArgs e)
+    {
+        Dispose();
+        base.OnClosed(e);
+    }
+
+    /// <summary>
+    /// Releases managed resources held by this window.
+    /// </summary>
+    public void Dispose()
+    {
+        _estimateCts?.Cancel();
+        _estimateCts?.Dispose();
+        _estimateCts = null;
     }
 }

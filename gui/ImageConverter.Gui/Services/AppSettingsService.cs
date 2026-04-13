@@ -10,9 +10,14 @@ namespace ImageConverter.Gui.Services;
 /// </summary>
 public static class AppSettingsService
 {
-    private static readonly JsonSerializerOptions JsonOptions = new()
+    private static readonly JsonSerializerOptions WriteOptions = new()
     {
         WriteIndented = true
+    };
+
+    private static readonly JsonSerializerOptions ReadOptions = new()
+    {
+        PropertyNameCaseInsensitive = true
     };
 
     private static readonly string DefaultSettingsFilePath = Path.Combine(
@@ -32,7 +37,7 @@ public static class AppSettingsService
             }
 
             string json = File.ReadAllText(settingsFilePath);
-            AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json);
+            AppSettings? settings = JsonSerializer.Deserialize<AppSettings>(json, ReadOptions);
             return settings?.Sanitized() ?? AppSettings.Default();
         }
         catch
@@ -52,7 +57,7 @@ public static class AppSettingsService
             Directory.CreateDirectory(folder);
         }
 
-        string json = JsonSerializer.Serialize(safeSettings, JsonOptions);
+        string json = JsonSerializer.Serialize(safeSettings, WriteOptions);
         File.WriteAllText(settingsFilePath, json);
     }
 }

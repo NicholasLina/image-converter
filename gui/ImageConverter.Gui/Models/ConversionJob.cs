@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -17,10 +18,18 @@ public sealed class ConversionJob : INotifyPropertyChanged
     /// </summary>
     /// <param name="inputPath">The full path to the input image file.</param>
     /// <param name="sourceSizeBytes">The size of the source file in bytes.</param>
+    /// <exception cref="ArgumentNullException">Thrown when <paramref name="inputPath"/> is null.</exception>
+    /// <exception cref="ArgumentException">Thrown when <paramref name="inputPath"/> is empty or whitespace.</exception>
     public ConversionJob(string inputPath, long sourceSizeBytes)
     {
+        ArgumentNullException.ThrowIfNull(inputPath);
+        if (string.IsNullOrWhiteSpace(inputPath))
+        {
+            throw new ArgumentException("Input path cannot be empty or whitespace.", nameof(inputPath));
+        }
+
         InputPath = inputPath;
-        SourceSizeBytes = sourceSizeBytes;
+        SourceSizeBytes = Math.Max(0, sourceSizeBytes);
     }
 
     /// <summary>
@@ -93,35 +102,4 @@ public sealed class ConversionJob : INotifyPropertyChanged
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null) =>
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-}
-
-/// <summary>
-/// Utility class for formatting byte sizes into human-readable strings.
-/// </summary>
-public static class ByteFormat
-{
-    /// <summary>
-    /// Formats a byte count into a human-readable string with appropriate units.
-    /// </summary>
-    /// <param name="bytes">The number of bytes to format.</param>
-    /// <returns>A formatted string like "1.5 MB" or "256 B".</returns>
-    public static string Format(long bytes)
-    {
-        if (bytes < 1024)
-        {
-            return $"{bytes} B";
-        }
-
-        string[] units = ["KB", "MB", "GB", "TB"];
-        double value = bytes;
-        int index = -1;
-
-        while (value >= 1024 && index < units.Length - 1)
-        {
-            value /= 1024;
-            index++;
-        }
-
-        return $"{value:0.##} {units[index]}";
-    }
 }
