@@ -103,7 +103,7 @@ public partial class MainWindow : Window
         await AddInputPathsAsync(filePaths);
     }
 
-    private async void DropZone_OnDrop(object? sender, DragEventArgs e)
+    private async void RootPanel_OnDrop(object? sender, DragEventArgs e)
     {
         if (_isConverting || !e.DataTransfer.Contains(DataFormat.File))
         {
@@ -138,7 +138,7 @@ public partial class MainWindow : Window
         await AddInputPathsAsync(resolvedPaths);
     }
 
-    private void DropZone_OnDragOver(object? sender, DragEventArgs e)
+    private void RootPanel_OnDragOver(object? sender, DragEventArgs e)
     {
         e.DragEffects = e.DataTransfer.Contains(DataFormat.File) ? DragDropEffects.Copy : DragDropEffects.None;
         e.Handled = true;

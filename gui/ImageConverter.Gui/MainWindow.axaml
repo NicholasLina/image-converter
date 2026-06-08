@@ -4,145 +4,340 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         x:CompileBindings="False"
-        d:DesignWidth="1100"
-        d:DesignHeight="720"
+        d:DesignWidth="1280"
+        d:DesignHeight="800"
         x:Class="ImageConverter.Gui.MainWindow"
-        Width="1100"
-        Height="720"
-        MinWidth="900"
-        MinHeight="600"
-        Title="Image Converter (C# GUI + Rust Core)">
-    <Grid Margin="16"
-          ColumnDefinitions="*,320"
-          RowDefinitions="Auto,Auto,*,Auto"
-          ColumnSpacing="16"
-          RowSpacing="12">
-        <Border Grid.Row="0"
-                Grid.ColumnSpan="2"
-                Name="DropZone"
-                Background="#10235A89"
-                BorderBrush="#905AA9E6"
-                BorderThickness="2"
-                CornerRadius="10"
-                Padding="16"
-                DragDrop.AllowDrop="True"
-                DragDrop.DragOver="DropZone_OnDragOver"
-                DragDrop.Drop="DropZone_OnDrop">
-            <StackPanel Spacing="4" HorizontalAlignment="Center">
-                <TextBlock Text="Drop images or folders here for bulk processing"
-                           FontSize="16"
-                           FontWeight="SemiBold"
-                           HorizontalAlignment="Center" />
-                <TextBlock Text="Supported inputs include PNG, JPEG, WebP, AVIF, TIFF, BMP, GIF, ICO, HDR, PNM, DDS, TGA, QOI, and EXR."
-                           MaxWidth="920"
-                           TextWrapping="Wrap"
-                           TextAlignment="Center"
-                           HorizontalAlignment="Center" />
-            </StackPanel>
-        </Border>
+        Width="1280"
+        Height="800"
+        MinWidth="820"
+        MinHeight="560"
+        Title="Image Converter"
+        Background="#0C0A18">
 
-        <StackPanel Grid.Row="1" Grid.Column="0" Orientation="Horizontal" Spacing="8">
-            <Button Name="AddFilesButton" Content="Add Files" Click="AddFilesButton_OnClick" />
-            <Button Name="AddFolderButton" Content="Add Folder" Click="AddFolderButton_OnClick" />
-            <Button Name="RemoveSelectedButton" Content="Remove Selected" Click="RemoveSelectedButton_OnClick" />
-            <Button Name="ClearButton" Content="Clear Queue" Click="ClearButton_OnClick" />
-            <Button Name="EstimateButton" Content="Refresh Estimates" Click="EstimateButton_OnClick" />
-        </StackPanel>
+    <Window.Styles>
 
-        <DataGrid Grid.Row="2"
-                  Grid.Column="0"
-                  Name="JobsGrid"
-                  Margin="0,4,0,4"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  SelectionMode="Extended"
-                  GridLinesVisibility="Horizontal"
-                  CanUserSortColumns="False"
-                  CanUserReorderColumns="False">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="File" Binding="{Binding FileName}" Width="2*" />
-                <DataGridTextColumn Header="Input Path" Binding="{Binding InputPath}" Width="4*" />
-                <DataGridTextColumn Header="Source Size" Binding="{Binding SourceSize}" Width="130" />
-                <DataGridTextColumn Header="Estimated Size" Binding="{Binding EstimatedSize}" Width="140" />
-                <DataGridTextColumn Header="Status" Binding="{Binding Status}" Width="2*" />
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Liquid glass surface: top-lit gradient bg + gradient highlight border + lift shadow -->
+        <Style Selector="Border.glass">
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="18"/>
+            <Setter Property="BoxShadow" Value="0 16 56 0 #2A000018"/>
+            <Setter Property="Background">
+                <Setter.Value>
+                    <!-- Top-lit glass: brighter at top (light catch), fades down -->
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="0%,100%">
+                        <GradientStop Color="#20FFFFFF" Offset="0"/>
+                        <GradientStop Color="#0AFFFFFF" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+            <Setter Property="BorderBrush">
+                <Setter.Value>
+                    <!-- Top-left highlight fades to near-invisible bottom-right -->
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                        <GradientStop Color="#38FFFFFF" Offset="0"/>
+                        <GradientStop Color="#10FFFFFF" Offset="0.5"/>
+                        <GradientStop Color="#04FFFFFF" Offset="1"/>
+                    </LinearGradientBrush>
+                </Setter.Value>
+            </Setter>
+        </Style>
 
-        <Grid Grid.Row="3" Grid.Column="0" ColumnDefinitions="*,240" ColumnSpacing="16">
-            <StackPanel Grid.Column="0" Spacing="3">
-                <TextBlock Name="SummaryText" Text="Queue is empty." />
-                <TextBlock Name="EstimateSummaryText" Text="Estimated output: --" Foreground="#D0D0D0" />
-            </StackPanel>
+        <!-- Subtle pill for small glass-inset values (quality badge, etc.) -->
+        <Style Selector="Border.pill">
+            <Setter Property="Background" Value="#14FFFFFF"/>
+            <Setter Property="BorderBrush" Value="#20FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="10"/>
+        </Style>
 
-            <ProgressBar Grid.Column="1"
-                         Name="ConversionProgressBar"
-                         Height="18"
-                         Minimum="0"
-                         Maximum="100"
-                         Value="0"
-                         VerticalAlignment="Center" />
-        </Grid>
+        <!-- Section label typography -->
+        <Style Selector="TextBlock.label">
+            <Setter Property="FontSize" Value="10"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#7070A8"/>
+            <Setter Property="LetterSpacing" Value="1.6"/>
+        </Style>
 
-        <Border Grid.Row="1"
-                Grid.RowSpan="3"
-                Grid.Column="1"
-                Background="#0DFFFFFF"
-                BorderBrush="#35FFFFFF"
-                BorderThickness="1"
-                CornerRadius="10"
-                Padding="14">
-            <Grid RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,*">
-                <TextBlock Grid.Row="0" Text="Output format" FontWeight="SemiBold" />
-                <ComboBox Grid.Row="1"
-                          Name="FormatComboBox"
-                          Margin="0,6,0,12"
-                          SelectionChanged="FormatComboBox_OnSelectionChanged">
-                    <ComboBoxItem Content="JPEG (.jpg)" Tag="Jpeg" />
-                    <ComboBoxItem Content="PNG (.png)" Tag="Png" />
-                    <ComboBoxItem Content="WebP (.webp)" Tag="WebP" />
-                    <ComboBoxItem Content="AVIF (.avif)" Tag="Avif" />
-                    <ComboBoxItem Content="TIFF (.tiff)" Tag="Tiff" />
-                    <ComboBoxItem Content="BMP (.bmp)" Tag="Bmp" />
-                    <ComboBoxItem Content="GIF (.gif)" Tag="Gif" />
-                </ComboBox>
+        <!-- Faint separator line -->
+        <Style Selector="Rectangle.divider">
+            <Setter Property="Height" Value="1"/>
+            <Setter Property="Fill" Value="#10FFFFFF"/>
+        </Style>
 
-                <TextBlock Grid.Row="2" Text="Quality" FontWeight="SemiBold" />
-                <Grid Grid.Row="3" Margin="0,6,0,12" ColumnDefinitions="*,Auto" ColumnSpacing="8">
-                    <Slider Grid.Column="0"
-                            Name="QualitySlider"
-                            Minimum="1"
-                            Maximum="100"
-                            TickFrequency="1"
-                            ValueChanged="QualitySlider_OnValueChanged"
-                            IsSnapToTickEnabled="True" />
-                    <TextBlock Grid.Column="1" Name="QualityLabel" Text="85" VerticalAlignment="Center" />
+    </Window.Styles>
+
+    <!-- Root drag-and-drop surface — entire window receives drops -->
+    <Grid Name="RootPanel"
+          DragDrop.AllowDrop="True"
+          DragDrop.DragOver="RootPanel_OnDragOver"
+          DragDrop.Drop="RootPanel_OnDrop">
+
+        <!-- ── Atmospheric background glows ── -->
+        <!-- Top-right violet bloom -->
+        <Rectangle IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="0.82,0.06"
+                                     GradientOrigin="0.82,0.06"
+                                     RadiusX="0.52"
+                                     RadiusY="0.46">
+                    <GradientStop Color="#407040C8" Offset="0"/>
+                    <GradientStop Color="#18401080" Offset="0.45"/>
+                    <GradientStop Color="#00000000" Offset="1"/>
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+        <!-- Bottom-left indigo bloom -->
+        <Rectangle IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="0.1,0.88"
+                                     GradientOrigin="0.1,0.88"
+                                     RadiusX="0.42"
+                                     RadiusY="0.38">
+                    <GradientStop Color="#30203888" Offset="0"/>
+                    <GradientStop Color="#10101840" Offset="0.5"/>
+                    <GradientStop Color="#00000000" Offset="1"/>
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+        <!-- Subtle mid-window haze for depth -->
+        <Rectangle IsHitTestVisible="False">
+            <Rectangle.Fill>
+                <RadialGradientBrush Center="0.42,0.48"
+                                     GradientOrigin="0.42,0.48"
+                                     RadiusX="0.6"
+                                     RadiusY="0.55">
+                    <GradientStop Color="#0C181030" Offset="0"/>
+                    <GradientStop Color="#00000000" Offset="1"/>
+                </RadialGradientBrush>
+            </Rectangle.Fill>
+        </Rectangle>
+
+        <!-- ── Content: 3-row stack of glass cards ── -->
+        <Grid Margin="16,14,16,14"
+              RowDefinitions="52,10,*,10,40">
+
+            <!-- ════════════════════════════════════════
+                 ROW 0  –  Header glass card
+                 ════════════════════════════════════════ -->
+            <Border Grid.Row="0" Classes="glass" Padding="22,0">
+                <Grid ColumnDefinitions="Auto,*,Auto">
+
+                    <!-- Brand mark + title -->
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                Spacing="10"
+                                VerticalAlignment="Center">
+                        <Ellipse Width="8" Height="8"
+                                 VerticalAlignment="Center">
+                            <Ellipse.Fill>
+                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                    <GradientStop Color="#C07BE8" Offset="0"/>
+                                    <GradientStop Color="#7040BE" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <TextBlock Text="Image Converter"
+                                   FontSize="15"
+                                   FontWeight="SemiBold"
+                                   LetterSpacing="0.3"
+                                   Foreground="#EAE2FF"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+
+                    <!-- Drop hint (center, faded) -->
+                    <TextBlock Grid.Column="1"
+                               Text="Drop images or folders anywhere"
+                               FontSize="12"
+                               Foreground="#36364E"
+                               VerticalAlignment="Center"
+                               HorizontalAlignment="Center"/>
+
+                    <!-- Toolbar -->
+                    <StackPanel Grid.Column="2"
+                                Orientation="Horizontal"
+                                Spacing="6"
+                                VerticalAlignment="Center">
+                        <Button Name="AddFilesButton"
+                                Content="Add Files"
+                                Click="AddFilesButton_OnClick"
+                                FontSize="12"
+                                Padding="14,6"/>
+                        <Button Name="AddFolderButton"
+                                Content="Add Folder"
+                                Click="AddFolderButton_OnClick"
+                                FontSize="12"
+                                Padding="14,6"/>
+                        <Button Name="RemoveSelectedButton"
+                                Content="Remove"
+                                Click="RemoveSelectedButton_OnClick"
+                                FontSize="12"
+                                Padding="14,6"/>
+                        <Button Name="ClearButton"
+                                Content="Clear"
+                                Click="ClearButton_OnClick"
+                                FontSize="12"
+                                Padding="14,6"/>
+                        <Button Name="EstimateButton"
+                                Content="Refresh Estimates"
+                                Click="EstimateButton_OnClick"
+                                FontSize="12"
+                                Padding="14,6"/>
+                    </StackPanel>
                 </Grid>
-                <TextBlock Grid.Row="4"
-                           Name="QualityHelpText"
-                           Text="(used for JPEG/AVIF)"
-                           Margin="0,0,0,12"
-                           Foreground="#AAFFFFFF" />
+            </Border>
 
-                <TextBlock Grid.Row="5" Text="Output folder" FontWeight="SemiBold" />
-                <StackPanel Grid.Row="6" Margin="0,6,0,0" Spacing="8">
-                    <TextBox Name="OutputFolderTextBox"
-                             IsReadOnly="True"
-                             Watermark="Choose destination folder"
-                             TextWrapping="WrapWithOverflow"
-                             AcceptsReturn="True"
-                             MinHeight="58" />
-                    <Button Name="BrowseOutputButton" Content="Browse..." Click="BrowseOutputButton_OnClick" />
-                </StackPanel>
+            <!-- ════════════════════════════════════════
+                 ROW 2  –  File queue + sidebar
+                 ════════════════════════════════════════ -->
+            <Grid Grid.Row="2">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" MinWidth="360"/>
+                    <ColumnDefinition Width="12"/>
+                    <ColumnDefinition Width="288" MinWidth="220"/>
+                </Grid.ColumnDefinitions>
 
-                <Button Grid.Row="7"
-                        Name="ConvertButton"
-                        Content="Convert All"
-                        Click="ConvertButton_OnClick"
-                        VerticalAlignment="Bottom"
-                        HorizontalAlignment="Stretch"
-                        Margin="0,16,0,0"
-                        Classes="accent" />
+                <!-- File queue glass card -->
+                <Border Grid.Column="0" Classes="glass">
+                    <DataGrid Name="JobsGrid"
+                              Background="Transparent"
+                              RowBackground="Transparent"
+                              HorizontalGridLinesBrush="#09FFFFFF"
+                              AutoGenerateColumns="False"
+                              IsReadOnly="True"
+                              SelectionMode="Extended"
+                              GridLinesVisibility="Horizontal"
+                              CanUserSortColumns="False"
+                              CanUserReorderColumns="False"
+                              CanUserResizeColumns="True"
+                              Margin="2,2,2,2">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="File"           Binding="{Binding FileName}"      Width="2*"/>
+                            <DataGridTextColumn Header="Input Path"     Binding="{Binding InputPath}"     Width="4*"/>
+                            <DataGridTextColumn Header="Source Size"    Binding="{Binding SourceSize}"    Width="108"/>
+                            <DataGridTextColumn Header="Estimated Size" Binding="{Binding EstimatedSize}" Width="120"/>
+                            <DataGridTextColumn Header="Status"         Binding="{Binding Status}"        Width="*"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Border>
+
+                <!-- Transparent gap that acts as the GridSplitter drag zone -->
+                <GridSplitter Grid.Column="1"
+                              Background="#08FFFFFF"
+                              ResizeDirection="Columns"
+                              HorizontalAlignment="Stretch"
+                              Cursor="SizeWestEast"/>
+
+                <!-- Settings sidebar glass card -->
+                <Border Grid.Column="2" Classes="glass" Padding="0">
+                    <ScrollViewer Padding="22,24,22,24"
+                                  HorizontalScrollBarVisibility="Disabled">
+                        <StackPanel>
+
+                            <!-- Output format -->
+                            <TextBlock Text="OUTPUT FORMAT" Classes="label" Margin="0,0,0,9"/>
+                            <ComboBox Name="FormatComboBox"
+                                      HorizontalAlignment="Stretch"
+                                      Margin="0,0,0,26"
+                                      SelectionChanged="FormatComboBox_OnSelectionChanged">
+                                <ComboBoxItem Content="JPEG (.jpg)"  Tag="Jpeg"/>
+                                <ComboBoxItem Content="PNG (.png)"   Tag="Png"/>
+                                <ComboBoxItem Content="WebP (.webp)" Tag="WebP"/>
+                                <ComboBoxItem Content="AVIF (.avif)" Tag="Avif"/>
+                                <ComboBoxItem Content="TIFF (.tiff)" Tag="Tiff"/>
+                                <ComboBoxItem Content="BMP (.bmp)"   Tag="Bmp"/>
+                                <ComboBoxItem Content="GIF (.gif)"   Tag="Gif"/>
+                            </ComboBox>
+
+                            <!-- Quality -->
+                            <TextBlock Text="QUALITY" Classes="label" Margin="0,0,0,9"/>
+                            <Grid ColumnDefinitions="*,52" ColumnSpacing="10" Margin="0,0,0,5">
+                                <Slider Grid.Column="0"
+                                        Name="QualitySlider"
+                                        Minimum="1"
+                                        Maximum="100"
+                                        TickFrequency="1"
+                                        ValueChanged="QualitySlider_OnValueChanged"
+                                        IsSnapToTickEnabled="True"
+                                        VerticalAlignment="Center"/>
+                                <Border Grid.Column="1" Classes="pill" VerticalAlignment="Center">
+                                    <TextBlock Name="QualityLabel"
+                                               Text="85"
+                                               FontSize="15"
+                                               FontWeight="SemiBold"
+                                               HorizontalAlignment="Center"
+                                               Padding="0,7"/>
+                                </Border>
+                            </Grid>
+                            <TextBlock Name="QualityHelpText"
+                                       Text="(used for JPEG/AVIF)"
+                                       FontSize="11"
+                                       Foreground="#52528A"
+                                       Margin="0,0,0,26"/>
+
+                            <!-- Output folder -->
+                            <TextBlock Text="OUTPUT FOLDER" Classes="label" Margin="0,0,0,9"/>
+                            <TextBox Name="OutputFolderTextBox"
+                                     IsReadOnly="True"
+                                     Watermark="Choose destination folder"
+                                     TextWrapping="WrapWithOverflow"
+                                     AcceptsReturn="True"
+                                     MinHeight="58"
+                                     Margin="0,0,0,8"/>
+                            <Button Name="BrowseOutputButton"
+                                    Content="Browse…"
+                                    Click="BrowseOutputButton_OnClick"
+                                    HorizontalAlignment="Stretch"
+                                    FontSize="12"
+                                    Padding="0,9"/>
+
+                            <Rectangle Classes="divider" Margin="0,26,0,26"/>
+
+                            <!-- Primary action -->
+                            <Button Name="ConvertButton"
+                                    Content="Convert All"
+                                    Click="ConvertButton_OnClick"
+                                    HorizontalAlignment="Stretch"
+                                    Height="46"
+                                    FontSize="14"
+                                    FontWeight="SemiBold"
+                                    Classes="accent"/>
+
+                        </StackPanel>
+                    </ScrollViewer>
+                </Border>
             </Grid>
-        </Border>
+
+            <!-- ════════════════════════════════════════
+                 ROW 4  –  Status bar glass card
+                 ════════════════════════════════════════ -->
+            <Border Grid.Row="4" Classes="glass" Padding="22,0">
+                <Grid ColumnDefinitions="*,240" ColumnSpacing="16">
+                    <StackPanel Grid.Column="0"
+                                Orientation="Horizontal"
+                                Spacing="18"
+                                VerticalAlignment="Center">
+                        <TextBlock Name="SummaryText"
+                                   Text="Queue is empty."
+                                   FontSize="12"
+                                   Foreground="#A8A8D0"
+                                   VerticalAlignment="Center"/>
+                        <TextBlock Name="EstimateSummaryText"
+                                   Text="Estimated output: --"
+                                   FontSize="12"
+                                   Foreground="#46466A"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                    <ProgressBar Grid.Column="1"
+                                 Name="ConversionProgressBar"
+                                 Height="4"
+                                 CornerRadius="2"
+                                 Minimum="0"
+                                 Maximum="100"
+                                 Value="0"
+                                 VerticalAlignment="Center"/>
+                </Grid>
+            </Border>
+
+        </Grid>
     </Grid>
 </Window>
