@@ -1,8 +1,19 @@
 <Application xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="ImageConverter.Gui.App"
-             RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
+             RequestedThemeVariant="Dark">
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <Color x:Key="SystemAccentColor">#7C3FBE</Color>
+            <Color x:Key="SystemAccentColorLight1">#8D52CC</Color>
+            <Color x:Key="SystemAccentColorLight2">#9E65DA</Color>
+            <Color x:Key="SystemAccentColorLight3">#AF78E8</Color>
+            <Color x:Key="SystemAccentColorDark1">#6B34A6</Color>
+            <Color x:Key="SystemAccentColorDark2">#5A298E</Color>
+            <Color x:Key="SystemAccentColorDark3">#491E76</Color>
+        </ResourceDictionary>
+    </Application.Resources>
 
     <Application.Styles>
         <FluentTheme />
